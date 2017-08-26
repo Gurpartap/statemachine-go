@@ -288,14 +288,13 @@ process.Machine.Build(func(m statemachine.MachineBuilder) {
 		AroundTransition().
 		From("starting", "restarting").
 		To("running").
-		Do(func(t statemachine.Transition, exec func()) {
+		Do(func(t statemachine.Transition, execFn func()) {
 			start := time.Now()
 
-			// It'll trigger a failure if exec func is not called.
-			exec()
+			// It'll trigger a failure if execFn is not called.
+			execFn()
 
-			end := time.Now()
-			elapsed = end.Sub(start)
+			elapsed = time.Since(start)
 
 			log.Printf("It took %s to [re]start the process.\n", elapsed)
 		})
