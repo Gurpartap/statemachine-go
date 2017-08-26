@@ -116,6 +116,23 @@ type Process struct {
 	
 	Machine statemachine.Machine
 }
+
+func NewProcess() *Process {
+	process := &Process{}
+	
+	process.Machine = statemachine.NewMachine()
+	process.Machine.Init(func(m statemachine.MachineBuilder) {
+		// ...
+	})
+	
+	// or
+	
+	process.Machine = statemachine.InitNewMachine(func(m statemachine.MachineBuilder) {
+		// ...
+	})
+	
+	return process
+}
 ```
 
 States, events, and transitions are defined using, what I call "builders",
@@ -138,7 +155,7 @@ Initial state is set during the initialization of the state machine, and is
 required to be defined in the builder.
 
 ```go
-process.Machine.Build(func(m statemachine.MachineBuilder) {
+process.Machine.Init(func(m statemachine.MachineBuilder) {
 	m.States("unmonitored", "running", "stopped")
 	m.States("starting", "stopping", "restarting")
 
@@ -152,7 +169,7 @@ process.Machine.Build(func(m statemachine.MachineBuilder) {
 Events act as a virtual function which when fired, trigger a state transition.
 
 ```go
-process.Machine.Build(func(m statemachine.MachineBuilder) {
+process.Machine.Init(func(m statemachine.MachineBuilder) {
 	m.Event("monitor", ... )
 
 	m.Event("start", ... )
@@ -175,7 +192,7 @@ Note that `.From(states ... string)`, `.To(states ...string)`, etc. accept
 variadic values.
 
 ```go
-process.Machine.Build(func(m statemachine.MachineBuilder) {
+process.Machine.Init(func(m statemachine.MachineBuilder) {
 	m.Event("monitor", func(e statemachine.EventBuilder) {
 		e.Transition().From("unmonitored").To("stopped")
 	})
@@ -257,7 +274,7 @@ func(t statemachine.Transition)
 ```
 
 ```go
-process.Machine.Build(func(m statemachine.MachineBuilder) {
+process.Machine.Init(func(m statemachine.MachineBuilder) {
 	// ...
 	
 	m.BeforeTransition().FromAny().To("stopping").Do(func(t statemachine.Transition) { 
@@ -281,7 +298,7 @@ func(t statemachine.Transition, exec func())
 ```
 
 ```go
-process.Machine.Build(func(m statemachine.MachineBuilder) {
+process.Machine.Init(func(m statemachine.MachineBuilder) {
 	// ...
 
 	m.
@@ -315,7 +332,7 @@ func(t statemachine.Transition)
 ```
 
 ```go
-process.Machine.Build(func(m statemachine.MachineBuilder) {
+process.Machine.Init(func(m statemachine.MachineBuilder) {
 	// ...
 
 	// Notify system admin.
@@ -345,7 +362,7 @@ func(t statemachine.Transition, err error)
 ```
 
 ```go
-process.Machine.Build(func(m statemachine.MachineBuilder) {
+process.Machine.Init(func(m statemachine.MachineBuilder) {
 	// ...
 	
 	m.
