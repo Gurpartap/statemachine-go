@@ -105,22 +105,22 @@ A state machine definition comprises of the following components:
 Each of these components are covered below, along with their example usage
 code.
 
-Adding a state machine is as simple as embedding *statemachine.Machine in
+Adding a state machine is as simple as embedding statemachine.Machine in
 your struct, defining states and events, along with their transitions.
 
 ```go
 type Process struct {
-	*statemachine.Machine
+	statemachine.Machine
 	
 	// or
 	
-	Machine *statemachine.Machine
+	Machine statemachine.Machine
 }
 ```
 
 States, events, and transitions are defined using, what I call "builders",
-which including `*statemachine.MachineBuilder` and
-`*statemachine.EventBuilder`. These builders provide a clean DSL for writing
+which including `statemachine.MachineBuilder` and
+`statemachine.EventBuilder`. These builders provide a clean DSL for writing
 the specification of how the state machine functions.  
 
 The subsequent examples are a close port of
@@ -138,7 +138,7 @@ Initial state is set during the initialization of the state machine, and is
 required to be defined in the builder.
 
 ```go
-process.Machine.Build(func(m *statemachine.MachineBuilder) {
+process.Machine.Build(func(m statemachine.MachineBuilder) {
 	m.States("unmonitored", "running", "stopped")
 	m.States("starting", "stopping", "restarting")
 
@@ -152,7 +152,7 @@ process.Machine.Build(func(m *statemachine.MachineBuilder) {
 Events act as a virtual function which when fired, trigger a state transition.
 
 ```go
-process.Machine.Build(func(m *statemachine.MachineBuilder) {
+process.Machine.Build(func(m statemachine.MachineBuilder) {
 	m.Event("monitor", ... )
 
 	m.Event("start", ... )
@@ -175,30 +175,30 @@ Note that `.From(states ... string)`, `.To(states ...string)`, etc. accept
 variadic values.
 
 ```go
-process.Machine.Build(func(m *statemachine.MachineBuilder) {
-	m.Event("monitor", func(e *statemachine.EventBuilder) {
+process.Machine.Build(func(m statemachine.MachineBuilder) {
+	m.Event("monitor", func(e statemachine.EventBuilder) {
 		e.Transition().From("unmonitored").To("stopped")
 	})
 
 	// Note that you can set multiple From states.
 	// The same goes for To states.
-	m.Event("start", func(e *statemachine.EventBuilder) {
+	m.Event("start", func(e statemachine.EventBuilder) {
 		e.Transition().From("unmonitored", "stopped").To("starting")
 	})
 
-	m.Event("stop", func(e *statemachine.EventBuilder) {
+	m.Event("stop", func(e statemachine.EventBuilder) {
 		e.Transition().From("running").To("stopping")
 	})
 
-	m.Event("restart", func(e *statemachine.EventBuilder) {
+	m.Event("restart", func(e statemachine.EventBuilder) {
 		e.Transition().From("running", "stopped").To("restarting")
 	})
 
-	m.Event("unmonitor", func(e *statemachine.EventBuilder) {
+	m.Event("unmonitor", func(e statemachine.EventBuilder) {
 		e.Transition().FromAny().To("unmonitored")
 	})
 	
-	m.Event("tick", func(e *statemachine.EventBuilder) {
+	m.Event("tick", func(e statemachine.EventBuilder) {
 		// ...
 	})
 })
@@ -212,13 +212,13 @@ value, implying whether or not the transition in context should occur.
 Callback function signature:
 
 ```go
-func(t *statemachine.Transition) bool
+func(t statemachine.Transition) bool
 ```
 
 ```go
 // Assuming process.GetIsProcessRunning() returns a bool.
 
-m.Event("tick", func(e *statemachine.EventBuilder) {
+m.Event("tick", func(e statemachine.EventBuilder) {
 	// If guard
 	e.Transition().From("starting").To("running").If(process.GetIsProcessRunning)
 	
@@ -227,7 +227,7 @@ m.Event("tick", func(e *statemachine.EventBuilder) {
 
 	// ...
 
-	e.Transition().From("stopped").To("starting").If(func(t *statemachine.Transition) bool {
+	e.Transition().From("stopped").To("starting").If(func(t statemachine.Transition) bool {
 		return process.ShouldAutoStart && !process.GetIsProcessRunning()
 	})
 
@@ -253,14 +253,14 @@ value will not impact the transition.
 Callback function signature:
 
 ```go
-func(t *statemachine.Transition)
+func(t statemachine.Transition)
 ```
 
 ```go
-process.Machine.Build(func(m *statemachine.MachineBuilder) {
+process.Machine.Build(func(m statemachine.MachineBuilder) {
 	// ...
 	
-	m.BeforeTransition().FromAny().To("stopping").Do(func(t *statemachine.Transition) { 
+	m.BeforeTransition().FromAny().To("stopping").Do(func(t statemachine.Transition) { 
 		process.ShouldAutoStart = false
 	})
 	
@@ -277,18 +277,18 @@ runtime failure with an appropriately describing error.
 Callback function signature:
 
 ```go
-func(t *statemachine.Transition, exec func())
+func(t statemachine.Transition, exec func())
 ```
 
 ```go
-process.Machine.Build(func(m *statemachine.MachineBuilder) {
+process.Machine.Build(func(m statemachine.MachineBuilder) {
 	// ...
 
 	m.
 		AroundTransition().
 		From("starting", "restarting").
 		To("running").
-		Do(func(t *statemachine.Transition, exec func()) {
+		Do(func(t statemachine.Transition, exec func()) {
 			start := time.Now()
 
 			// It'll trigger a failure if exec func is not called.
@@ -312,11 +312,11 @@ transitioned.
 Callback function signature:
 
 ```go
-func(t *statemachine.Transition)
+func(t statemachine.Transition)
 ```
 
 ```go
-process.Machine.Build(func(m *statemachine.MachineBuilder) {
+process.Machine.Build(func(m statemachine.MachineBuilder) {
 	// ...
 
 	// Notify system admin.
@@ -327,7 +327,7 @@ process.Machine.Build(func(m *statemachine.MachineBuilder) {
 		AfterTransition().
 		FromAny().
 		ToAny().
-		Do(func(t *statemachine.Transition) {
+		Do(func(t statemachine.Transition) {
 			log.Printf("State changed from '%s' to '%s'.\n", t.GetFrom(), t.GetTo())
 		})
 	
@@ -342,18 +342,18 @@ After failure callback is called when there's an error while transitioning.
 Callback function signature:
 
 ```go
-func(t *statemachine.Transition, err error)
+func(t statemachine.Transition, err error)
 ```
 
 ```go
-process.Machine.Build(func(m *statemachine.MachineBuilder) {
+process.Machine.Build(func(m statemachine.MachineBuilder) {
 	// ...
 	
 	m.
 		AfterFailure().
 		FromAny().
 		ToAny().
-		Do(func(t *statemachine.Transition, err error) {
+		Do(func(t statemachine.Transition, err error) {
 			log.Printf("Error occurred when transitioning from '%s' to '%s':\n", t.GetFrom(), t.GetTo())
 			log.Println(err)
 		})
@@ -428,11 +428,11 @@ variables may be skipped. In other words, all input parameters are optional and
 return types are optional.
 
 For example, if your BeforeTransition() callback does not need access to the
-`*statemachine.Transition` variable, you may just define the callback with a
+`statemachine.Transition` variable, you may just define the callback with a
 blank function signature: `func() bool`, instead of
-`func(t *statemachine.Transition) bool`. Similarly, for an AfterFailure()
+`func(t statemachine.Transition) bool`. Similarly, for an AfterFailure()
 callback you can use `func(err error)`, or
-`func(t *statemachine.Transition, err error)`, or even just `func()` . 
+`func(t statemachine.Transition, err error)`, or even just `func()` . 
 
 ## About
 
