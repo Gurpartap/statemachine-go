@@ -4,6 +4,31 @@ Implement Finite-State Machines In Go
 
 [![GoDoc](https://godoc.org/github.com/Gurpartap/statemachine-go?status.svg)](https://godoc.org/github.com/Gurpartap/statemachine-go)
 
+<!-- TOC -->
+
+- [Introduction](#introduction)
+	- [Further Reading](#further-reading)
+	- [Project Goals](#project-goals)
+	- [Project Status](#project-status)
+- [Installation](#installation)
+- [Usage](#usage)
+	- [States and Initial State](#states-and-initial-state)
+	- [Events](#events)
+	- [Transitions](#transitions)
+	- [Transition Guards (Conditions)](#transition-guards-conditions)
+	- [Transition Callbacks](#transition-callbacks)
+		- [Before Transition](#before-transition)
+		- [Around Transition](#around-transition)
+		- [After Transition](#after-transition)
+		- [After Failure](#after-failure)
+	- [Matchers](#matchers)
+		- [Event Transition Matchers](#event-transition-matchers)
+		- [Transition Callback Matchers](#transition-callback-matchers)
+		- [Callback Functions](#callback-functions)
+- [About](#about)
+
+<!-- /TOC -->
+
 ## Introduction
 
 State machines provide an alternative way of thinking about how your workflows
@@ -13,10 +38,10 @@ Using a state machine for an object, that reacts to events differently based on
 its current state, reduces the amount of boilerplate and duct-taping you have
 to introduce to your code. 
 
-The `statemachine` package provides a feature complete implementation of
+`package statemachine` provides a feature complete implementation of
 finite-state machines in Go.
 
-#### What Is A Finite-State Machine Even?
+__What Is A Finite-State Machine Even?__
 
 > A finite-state machine (FSM) or finite-state automaton (FSA, plural:
 > automata), finite automaton, or simply a state machine, is a mathematical
@@ -26,7 +51,7 @@ finite-state machines in Go.
 > state to another is called a transition. An FSM is defined by a list of its
 > states, its initial state, and the conditions for each transition.
 >
->    — [Wikipedia](https://en.wikipedia.org/wiki/Finite-state_machine)
+> — [Wikipedia](https://en.wikipedia.org/wiki/Finite-state_machine)
 
 In other words, state machines are utilized for automation of entities that
 have a state, an example of which is implemented across [usage](#usage) below.
@@ -59,7 +84,7 @@ a quickly tailored switch state based state machine might suffice.
 - [state_machines Ruby Gem](https://github.com/state-machines/state_machines)
 - [Flying Spaghetti Monster](https://en.wikipedia.org/wiki/Flying_Spaghetti_Monster)
 
-### Goals
+### Project Goals
 
 Performance is a fairly significant factor when considering the use of
 a third party package. However, an API that I can actually code and design in
@@ -85,11 +110,11 @@ you'll be able to use in code.
 ## Installation
 
 ```bash
-$ dep ensure -add https://github.com/Gurpartap/statemachine-go
+dep ensure -add https://github.com/Gurpartap/statemachine-go
 ```
 
 ```bash
-$ go get -u https://github.com/Gurpartap/statemachine-go
+go get -u https://github.com/Gurpartap/statemachine-go
 ```
 
 ## Usage
@@ -110,28 +135,28 @@ your struct, defining states and events, along with their transitions.
 
 ```go
 type Process struct {
-	statemachine.Machine
-	
-	// or
-	
-	Machine statemachine.Machine
+    statemachine.Machine
+
+    // or
+
+    Machine statemachine.Machine
 }
 
 func NewProcess() *Process {
-	process := &Process{}
-	
-	process.Machine = statemachine.NewMachine()
-	process.Machine.Init(func(m statemachine.MachineBuilder) {
-		// ...
-	})
-	
-	// or
-	
-	process.Machine = statemachine.InitNewMachine(func(m statemachine.MachineBuilder) {
-		// ...
-	})
-	
-	return process
+    process := &Process{}
+
+    process.Machine = statemachine.NewMachine()
+    process.Machine.Build(func(m statemachine.MachineBuilder) {
+        // ...
+    })
+
+    // or
+
+    process.Machine = statemachine.BuildNewMachine(func(m statemachine.MachineBuilder) {
+        // ...
+    })
+
+    return process
 }
 ```
 
@@ -155,12 +180,12 @@ Initial state is set during the initialization of the state machine, and is
 required to be defined in the builder.
 
 ```go
-process.Machine.Init(func(m statemachine.MachineBuilder) {
-	m.States("unmonitored", "running", "stopped")
-	m.States("starting", "stopping", "restarting")
+process.Machine.Build(func(m statemachine.MachineBuilder) {
+    m.States("unmonitored", "running", "stopped")
+    m.States("starting", "stopping", "restarting")
 
-	// Initial state must be defined.
-	m.InitialState("unmonitored")
+    // Initial state must be defined.
+    m.InitialState("unmonitored")
 })
 ```
 
@@ -169,18 +194,18 @@ process.Machine.Init(func(m statemachine.MachineBuilder) {
 Events act as a virtual function which when fired, trigger a state transition.
 
 ```go
-process.Machine.Init(func(m statemachine.MachineBuilder) {
-	m.Event("monitor", ... )
+process.Machine.Build(func(m statemachine.MachineBuilder) {
+    m.Event("monitor", ... )
 
-	m.Event("start", ... )
+    m.Event("start", ... )
 
-	m.Event("stop", ... )
+    m.Event("stop", ... )
 
-	m.Event("restart", ... )
+    m.Event("restart", ... )
 
-	m.Event("unmonitor", ... )
-	
-	m.Event("tick", ... )
+    m.Event("unmonitor", ... )
+
+    m.Event("tick", ... )
 })
 ```
 
@@ -192,32 +217,32 @@ Note that `.From(states ... string)`, `.To(states ...string)`, etc. accept
 variadic values.
 
 ```go
-process.Machine.Init(func(m statemachine.MachineBuilder) {
-	m.Event("monitor", func(e statemachine.EventBuilder) {
-		e.Transition().From("unmonitored").To("stopped")
-	})
+process.Machine.Build(func(m statemachine.MachineBuilder) {
+    m.Event("monitor", func(e statemachine.EventBuilder) {
+        e.Transition().From("unmonitored").To("stopped")
+    })
 
-	// Note that you can set multiple From states.
-	// The same goes for To states.
-	m.Event("start", func(e statemachine.EventBuilder) {
-		e.Transition().From("unmonitored", "stopped").To("starting")
-	})
+    // Note that you can set multiple From states.
+    // The same goes for To states.
+    m.Event("start", func(e statemachine.EventBuilder) {
+        e.Transition().From("unmonitored", "stopped").To("starting")
+    })
 
-	m.Event("stop", func(e statemachine.EventBuilder) {
-		e.Transition().From("running").To("stopping")
-	})
+    m.Event("stop", func(e statemachine.EventBuilder) {
+        e.Transition().From("running").To("stopping")
+    })
 
-	m.Event("restart", func(e statemachine.EventBuilder) {
-		e.Transition().From("running", "stopped").To("restarting")
-	})
+    m.Event("restart", func(e statemachine.EventBuilder) {
+        e.Transition().From("running", "stopped").To("restarting")
+    })
 
-	m.Event("unmonitor", func(e statemachine.EventBuilder) {
-		e.Transition().FromAny().To("unmonitored")
-	})
-	
-	m.Event("tick", func(e statemachine.EventBuilder) {
-		// ...
-	})
+    m.Event("unmonitor", func(e statemachine.EventBuilder) {
+        e.Transition().FromAny().To("unmonitored")
+    })
+
+    m.Event("tick", func(e statemachine.EventBuilder) {
+        // ...
+    })
 })
 ```
 
@@ -226,33 +251,41 @@ process.Machine.Init(func(m statemachine.MachineBuilder) {
 Transition Guards are conditional callbacks which expect a boolean return
 value, implying whether or not the transition in context should occur.
 
-Callback function signature:
+```go
+type TransitionGuardFnBuilder interface {
+    If(guardFn TransitionGuardFunc)
+    Unless(guardFn TransitionGuardFunc)
+}
+```
+
+Valid TransitionGuardFunc signatures:
 
 ```go
-func(t statemachine.Transition) bool
+func() bool
+func(transition statemachine.Transition) bool
 ```
 
 ```go
 // Assuming process.GetIsProcessRunning() returns a bool.
 
 m.Event("tick", func(e statemachine.EventBuilder) {
-	// If guard
-	e.Transition().From("starting").To("running").If(process.GetIsProcessRunning)
-	
-	// Unless guard
-	e.Transition().From("starting").To("stopped").Unless(process.GetIsProcessRunning)
+    // If guard
+    e.Transition().From("starting").To("running").If(process.GetIsProcessRunning)
 
-	// ...
+    // Unless guard
+    e.Transition().From("starting").To("stopped").Unless(process.GetIsProcessRunning)
 
-	e.Transition().From("stopped").To("starting").If(func(t statemachine.Transition) bool {
-		return process.ShouldAutoStart && !process.GetIsProcessRunning()
-	})
+    // ...
 
-	// ...
+    e.Transition().From("stopped").To("starting").If(func(t statemachine.Transition) bool {
+        return process.ShouldAutoStart && !process.GetIsProcessRunning()
+    })
+
+    // ...
 })
 ```
 
-### Transition Callbacks	
+### Transition Callbacks
 
 Transition Callback methods are called before, around, after, or upon a
 transition failure. The following 4 transition callbacks are available:
@@ -267,21 +300,22 @@ transition failure. The following 4 transition callbacks are available:
 Before transition callbacks do not act as a conditional, and a bool return
 value will not impact the transition. 
 
-Callback function signature:
+Valid TransitionCallbackFunc signatures:
 
 ```go
+func()
 func(t statemachine.Transition)
 ```
 
 ```go
-process.Machine.Init(func(m statemachine.MachineBuilder) {
-	// ...
-	
-	m.BeforeTransition().FromAny().To("stopping").Do(func(t statemachine.Transition) { 
-		process.ShouldAutoStart = false
-	})
-	
-	// ...
+process.Machine.Build(func(m statemachine.MachineBuilder) {
+    // ...
+
+    m.BeforeTransition().FromAny().To("stopping").Do(func() { 
+        process.ShouldAutoStart = false
+    })
+
+    // ...
 }
 ```
 
@@ -291,32 +325,33 @@ Around transition's callback provides a method signature as input, which must
 be called inside the callback. Missing to call the method will trigger a
 runtime failure with an appropriately describing error. 
 
-Callback function signature:
+Valid TransitionCallbackFunc signatures:
 
 ```go
-func(t statemachine.Transition, exec func())
+func(execFn func())
+func(t statemachine.Transition, execFn func())
 ```
 
 ```go
-process.Machine.Init(func(m statemachine.MachineBuilder) {
-	// ...
+process.Machine.Build(func(m statemachine.MachineBuilder) {
+    // ...
 
-	m.
-		AroundTransition().
-		From("starting", "restarting").
-		To("running").
-		Do(func(t statemachine.Transition, execFn func()) {
-			start := time.Now()
+    m.
+        AroundTransition().
+        From("starting", "restarting").
+        To("running").
+        Do(func(execFn func()) {
+            start := time.Now()
 
-			// It'll trigger a failure if execFn is not called.
-			execFn()
+            // It'll trigger a failure if execFn is not called.
+            execFn()
 
-			elapsed = time.Since(start)
+            elapsed = time.Since(start)
 
-			log.Printf("It took %s to [re]start the process.\n", elapsed)
-		})
+            log.Printf("It took %s to [re]start the process.\n", elapsed)
+        })
 
-	// ...
+    // ...
 })
 ```
 
@@ -325,29 +360,30 @@ process.Machine.Init(func(m statemachine.MachineBuilder) {
 After transition callback is called when the state has successfully
 transitioned.
 
-Callback function signature:
+Valid TransitionCallbackFunc signatures:
 
 ```go
+func()
 func(t statemachine.Transition)
 ```
 
 ```go
-process.Machine.Init(func(m statemachine.MachineBuilder) {
-	// ...
+process.Machine.Build(func(m statemachine.MachineBuilder) {
+    // ...
 
-	// Notify system admin.
-	m.AfterTransition().From("running").ToAny().Do(process.DialHome)
+    // Notify system admin.
+    m.AfterTransition().From("running").ToAny().Do(process.DialHome)
 
-	// Log all transitions.
-	m.
-		AfterTransition().
-		FromAny().
-		ToAny().
-		Do(func(t statemachine.Transition) {
-			log.Printf("State changed from '%s' to '%s'.\n", t.GetFrom(), t.GetTo())
-		})
-	
-	// ...
+    // Log all transitions.
+    m.
+        AfterTransition().
+        FromAny().
+        ToAny().
+        Do(func(t statemachine.Transition) {
+            log.Printf("State changed from '%s' to '%s'.\n", t.From(), t.To())
+        })
+
+    // ...
 })
 ```
 
@@ -355,26 +391,28 @@ process.Machine.Init(func(m statemachine.MachineBuilder) {
 
 After failure callback is called when there's an error while transitioning.
 
-Callback function signature:
+Valid TransitionCallbackFunc signatures:
 
 ```go
+func()
+func(err error)
 func(t statemachine.Transition, err error)
 ```
 
 ```go
-process.Machine.Init(func(m statemachine.MachineBuilder) {
-	// ...
-	
-	m.
-		AfterFailure().
-		FromAny().
-		ToAny().
-		Do(func(t statemachine.Transition, err error) {
-			log.Printf("Error occurred when transitioning from '%s' to '%s':\n", t.GetFrom(), t.GetTo())
-			log.Println(err)
-		})
-	
-	// ...
+process.Machine.Build(func(m statemachine.MachineBuilder) {
+    // ...
+
+    m.
+        AfterFailure().
+        FromAny().
+        ToAny().
+        Do(func(t statemachine.Transition, err error) {
+            log.Printf("Error occurred when transitioning from '%s' to '%s':\n", t.From(), t.To())
+            log.Println(err)
+        })
+
+    // ...
 })
 ```
 
@@ -385,15 +423,23 @@ process.Machine.Init(func(m statemachine.MachineBuilder) {
 These may map from one or more `from` states to exactly one `to` state.
 
 ```go
-.From(...string)
-.From(...string).ExceptFrom(...string)
-.FromAny()
-.FromAnyExcept(...string)
+type TransitionBuilder interface {
+    From(states ...string) TransitionFromBuilder
+    FromAny() TransitionFromBuilder
+    FromAnyExcept(states ...string) TransitionFromBuilder
+}
 
-.To(string)
+type TransitionFromBuilder interface {
+    ExceptFrom(states ...string) TransitionExceptFromBuilder
+    To(state string) TransitionToBuilder
+}
+
+type TransitionExceptFromBuilder interface {
+    To(state string) TransitionToBuilder
+}
 ```
 
-##### Examples
+__Examples:__
 
 ```go
 e.Transition().From("first_gear").To("second_gear")
@@ -413,18 +459,29 @@ e.Transition().FromAnyExcept("neutral_gear").To("stalled")
 These may map from one or more `from` states to one or more `to` states. 
 
 ```go
-.From(...string)
-.From(...string).ExceptFrom(...string)
-.FromAny()
-.FromAnyExcept(...string)
+type TransitionCallbackBuilder interface {
+    From(states ...string) TransitionCallbackFromBuilder
+    FromAny() TransitionCallbackFromBuilder
+    FromAnyExcept(states ...string) TransitionCallbackFromBuilder
+}
 
-.To(...string)
-.ToSame()
-.ToAny()
-.ToAnyExcept(...string)
+type TransitionCallbackFromBuilder interface {
+    ExceptFrom(states ...string) TransitionCallbackExceptFromBuilder
+    To(states ...string) TransitionCallbackToBuilder
+    ToSame() TransitionCallbackToBuilder
+    ToAny() TransitionCallbackToBuilder
+    ToAnyExcept(states ...string) TransitionCallbackToBuilder
+}
+
+type TransitionCallbackExceptFromBuilder interface {
+    To(states ...string) TransitionCallbackToBuilder
+    ToSame() TransitionCallbackToBuilder
+    ToAny() TransitionCallbackToBuilder
+    ToAnyExcept(states ...string) TransitionCallbackToBuilder
+}
 ```
 
-##### Examples
+__Examples:__
 
 ```go
 m.BeforeTransition().From("idle").ToAny().Do(someFunc)
@@ -453,13 +510,13 @@ callback you can use `func(err error)`, or
 ## About
 
     Copyright 2017 Gurpartap Singh
-    
+
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
     You may obtain a copy of the License at
-    
+
         http://www.apache.org/licenses/LICENSE-2.0
-    
+
     Unless required by applicable law or agreed to in writing, software
     distributed under the License is distributed on an "AS IS" BASIS,
     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
