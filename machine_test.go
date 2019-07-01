@@ -9,26 +9,28 @@ import (
 func ExampleBuildNewMachine() {
 	p := &ExampleProcess{}
 
-	p.Machine = statemachine.BuildNewMachine(func(builder statemachine.MachineBuilder) {
-		builder.InitialState("unmonitored")
+	p.Machine = statemachine.BuildNewMachine(func(m statemachine.MachineBuilder) {
+		m.States(processStates...)
+		m.InitialState("unmonitored")
 
 		// ...
 	})
 
 	fmt.Println(p.Machine.GetState())
-	//// Output: unmonitored
+	// Output: unmonitored
 }
 
 func ExampleNewMachine() {
 	p := &ExampleProcess{}
 
 	p.Machine = statemachine.NewMachine()
-	p.Machine.Build(func(builder statemachine.MachineBuilder) {
-		builder.InitialState("unmonitored")
+	p.Machine.Build(func(m statemachine.MachineBuilder) {
+		m.States(processStates...)
+		m.InitialState("unmonitored")
 
 		// ...
 	})
 
 	fmt.Println(p.Machine.GetState())
-	//// Output: unmonitored
+	// Output: unmonitored
 }

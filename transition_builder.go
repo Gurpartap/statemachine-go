@@ -1,13 +1,14 @@
 package statemachine
 
-// TransitionGuardFunc may accept Transition object as input, and it must
+// TransitionGuard may accept Transition object as input, and it must
 // return a bool type.
 //
-// Valid TransitionGuardFunc signatures:
+// Valid TransitionGuard types:
 //
-//	func() bool
-//	func(transition statemachine.Transition) bool
-type TransitionGuardFunc interface{}
+//  bool
+// 	func() bool
+// 	func(transition statemachine.Transition) bool
+type TransitionGuard interface{}
 
 // TransitionBuilder provides the ability to define the `from` state(s) of
 // the transition matcher.
@@ -35,74 +36,138 @@ type TransitionExceptFromBuilder interface {
 // TransitionExceptFromBuilder) and provides the ability to define the guard
 // condition funcs for the transition.
 type TransitionToBuilder interface {
-	If(guardFn TransitionGuardFunc)
-	Unless(guardFn TransitionGuardFunc)
+	If(guard TransitionGuard) TransitionAndGuardBuilder
+	Unless(guard TransitionGuard) TransitionAndGuardBuilder
+}
+
+// TransitionAndGuardBuilder inherits from TransitionToBuilder and provides
+// the ability to define additional guard condition funcs for the transition.
+type TransitionAndGuardBuilder interface {
+	AndIf(guard TransitionGuard) TransitionAndGuardBuilder
+	AndUnless(guard TransitionGuard) TransitionAndGuardBuilder
 }
 
 // newTransitionBuilder returns a zero-valued instance of
 // TransitionBuilder, which implements TransitionBuilder.
-func newTransitionBuilder() TransitionBuilder {
-	return &transitionBuilder{}
+func newTransitionBuilder(transitionDef *TransitionDef) TransitionBuilder {
+	return &transitionBuilder{
+		transitionDef: transitionDef,
+	}
 }
 
 // transitionBuilder implements TransitionBuilder
-type transitionBuilder struct{}
+type transitionBuilder struct {
+	transitionDef *TransitionDef
+}
+
+var _ TransitionBuilder = (*transitionBuilder)(nil)
 
 func (builder *transitionBuilder) From(states ...string) TransitionFromBuilder {
-	return newTransitionFromBuilder()
+	builder.transitionDef.SetFrom(states...)
+	return newTransitionFromBuilder(builder.transitionDef)
 }
 
 func (builder *transitionBuilder) FromAny() TransitionFromBuilder {
-	return newTransitionFromBuilder()
+	builder.transitionDef.SetFromAnyExcept()
+	return newTransitionFromBuilder(builder.transitionDef)
 }
 
 func (builder *transitionBuilder) FromAnyExcept(states ...string) TransitionFromBuilder {
-	return newTransitionFromBuilder()
+	builder.transitionDef.SetFromAnyExcept(states...)
+	return newTransitionFromBuilder(builder.transitionDef)
 }
 
 // newTransitionFromBuilder returns a zero-valued instance of
 // TransitionFromBuilder, which implements TransitionFromBuilder.
-func newTransitionFromBuilder() TransitionFromBuilder {
-	return &transitionFromBuilder{}
+func newTransitionFromBuilder(transitionDef *TransitionDef) TransitionFromBuilder {
+	return &transitionFromBuilder{
+		transitionDef: transitionDef,
+	}
 }
 
 // transitionFromBuilder implements TransitionFromBuilder
-type transitionFromBuilder struct{}
+type transitionFromBuilder struct {
+	transitionDef *TransitionDef
+}
+
+var _ TransitionFromBuilder = (*transitionFromBuilder)(nil)
 
 func (builder *transitionFromBuilder) ExceptFrom(states ...string) TransitionExceptFromBuilder {
-	return newTransitionExceptFromBuilder()
+	builder.transitionDef.SetFromAnyExcept(states...)
+	return newTransitionExceptFromBuilder(builder.transitionDef)
 }
 
 func (builder *transitionFromBuilder) To(state string) TransitionToBuilder {
-	return newTransitionToBuilder()
+	builder.transitionDef.SetTo(state)
+	return newTransitionToBuilder(builder.transitionDef)
 }
 
 // newTransitionExceptFromBuilder returns a zero-valued instance of
 // TransitionExceptFromBuilder, which implements TransitionExceptFromBuilder.
-func newTransitionExceptFromBuilder() TransitionExceptFromBuilder {
-	return &transitionExceptFromBuilder{}
+func newTransitionExceptFromBuilder(transitionDef *TransitionDef) TransitionExceptFromBuilder {
+	return &transitionExceptFromBuilder{
+		transitionDef: transitionDef,
+	}
 }
 
 // transitionExceptFromBuilder implements TransitionExceptFromBuilder
-type transitionExceptFromBuilder struct{}
+type transitionExceptFromBuilder struct {
+	transitionDef *TransitionDef
+}
+
+var _ TransitionExceptFromBuilder = (*transitionExceptFromBuilder)(nil)
 
 func (builder *transitionExceptFromBuilder) To(state string) TransitionToBuilder {
-	return newTransitionToBuilder()
+	builder.transitionDef.SetTo(state)
+	return newTransitionToBuilder(builder.transitionDef)
 }
 
 // newTransitionToBuilder returns a zero-valued instance of
 // TransitionToBuilder, which implements TransitionToBuilder.
-func newTransitionToBuilder() TransitionToBuilder {
-	return &transitionToBuilder{}
+func newTransitionToBuilder(transitionDef *TransitionDef) TransitionToBuilder {
+	return &transitionToBuilder{
+		transitionDef: transitionDef,
+	}
 }
 
 // transitionToBuilder implements TransitionToBuilder
-type transitionToBuilder struct{}
-
-func (builder *transitionToBuilder) If(guardFn TransitionGuardFunc) {
-
+type transitionToBuilder struct {
+	transitionDef *TransitionDef
 }
 
-func (builder *transitionToBuilder) Unless(guardFn TransitionGuardFunc) {
+var _ TransitionToBuilder = (*transitionToBuilder)(nil)
 
+func (builder *transitionToBuilder) If(guard TransitionGuard) TransitionAndGuardBuilder {
+	builder.transitionDef.AddIfGuard(guard)
+	return newTransitionAndGuardBuilder(builder.transitionDef)
+}
+
+func (builder *transitionToBuilder) Unless(guard TransitionGuard) TransitionAndGuardBuilder {
+	builder.transitionDef.AddUnlessGuard(guard)
+	return newTransitionAndGuardBuilder(builder.transitionDef)
+}
+
+// newTransitionAndGuardBuilder returns a zero-valued instance of
+// TransitionAndGuardBuilder, which implements TransitionAndGuardBuilder.
+func newTransitionAndGuardBuilder(transitionDef *TransitionDef) TransitionAndGuardBuilder {
+	return &transitionAndGuardBuilder{
+		transitionDef: transitionDef,
+	}
+}
+
+// transitionAndGuardBuilder implements TransitionAndGuardBuilder
+type transitionAndGuardBuilder struct {
+	transitionDef *TransitionDef
+}
+
+var _ TransitionAndGuardBuilder = (*transitionAndGuardBuilder)(nil)
+
+func (builder *transitionAndGuardBuilder) AndIf(guard TransitionGuard) TransitionAndGuardBuilder {
+	builder.transitionDef.AddIfGuard(guard)
+	return builder
+}
+
+func (builder *transitionAndGuardBuilder) AndUnless(guard TransitionGuard) TransitionAndGuardBuilder {
+	builder.transitionDef.AddUnlessGuard(guard)
+	return builder
 }

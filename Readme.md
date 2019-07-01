@@ -1,31 +1,34 @@
 <img alt="StateMachine" src="https://user-images.githubusercontent.com/39792/29720866-d95eda6a-89d8-11e7-907e-6f0edd7f4ee3.png" width="538" height="72"/>
 
-Implement Finite-State Machines In Go
+StateMachine supports creating productive State Machines In Go
 
 [![GoDoc](https://godoc.org/github.com/Gurpartap/statemachine-go?status.svg)](https://godoc.org/github.com/Gurpartap/statemachine-go)
 
 <!-- TOC -->
 
-- [Introduction](#introduction)
-	- [Further Reading](#further-reading)
-	- [Project Goals](#project-goals)
-	- [Project Status](#project-status)
-- [Installation](#installation)
-- [Usage](#usage)
-	- [States and Initial State](#states-and-initial-state)
-	- [Events](#events)
-	- [Transitions](#transitions)
-	- [Transition Guards (Conditions)](#transition-guards-conditions)
-	- [Transition Callbacks](#transition-callbacks)
-		- [Before Transition](#before-transition)
-		- [Around Transition](#around-transition)
-		- [After Transition](#after-transition)
-		- [After Failure](#after-failure)
-	- [Matchers](#matchers)
-		- [Event Transition Matchers](#event-transition-matchers)
-		- [Transition Callback Matchers](#transition-callback-matchers)
-		- [Callback Functions](#callback-functions)
-- [About](#about)
+- [TODO: check this https://www.w3.org/TR/scxml/](#todo-check-this-httpswwww3orgtrscxml)
+	- [Introduction](#introduction)
+		- [Further Reading](#further-reading)
+		- [Project Goals](#project-goals)
+		- [Project Status](#project-status)
+	- [Installation](#installation)
+	- [Usage](#usage)
+		- [States and Initial State](#states-and-initial-state)
+		- [Events](#events)
+		- [Transitions](#transitions)
+		- [Transition Guards (Conditions)](#transition-guards-conditions)
+		- [State Callbacks](#state-callbacks)
+			- [Before State](#before-state)
+		- [Transition Callbacks](#transition-callbacks)
+			- [Before Transition](#before-transition)
+			- [Around Transition](#around-transition)
+			- [After Transition](#after-transition)
+			- [After Failure](#after-failure)
+		- [Matchers](#matchers)
+			- [Event Transition Matchers](#event-transition-matchers)
+			- [Transition Callback Matchers](#transition-callback-matchers)
+			- [Callback Functions](#callback-functions)
+	- [About](#about)
 
 <!-- /TOC -->
 
@@ -38,7 +41,7 @@ Using a state machine for an object, that reacts to events differently based on
 its current state, reduces the amount of boilerplate and duct-taping you have
 to introduce to your code. 
 
-`package statemachine` provides a feature complete implementation of
+StateMachine package provides a feature complete implementation of
 finite-state machines in Go.
 
 __What Is A Finite-State Machine Even?__
@@ -84,6 +87,13 @@ a quickly tailored switch state based state machine might suffice.
 - [state_machines Ruby Gem](https://github.com/state-machines/state_machines)
 - [Flying Spaghetti Monster](https://en.wikipedia.org/wiki/Flying_Spaghetti_Monster)
 
+> A complex system that works is invariably found to have evolved from a simple
+> system that worked. A complex system designed from scratch never works and
+> cannot be patched up to make it work. You have to start over with a working
+> simple system. 
+>
+> – [John Gall (1975)](https://en.wikipedia.org/wiki/John_Gall_(author)#Gall.27s_law)
+
 ### Project Goals
 
 Performance is a fairly significant factor when considering the use of
@@ -110,11 +120,11 @@ you'll be able to use in code.
 ## Installation
 
 ```bash
-dep ensure -add https://github.com/Gurpartap/statemachine-go
+$ dep ensure -add https://github.com/Gurpartap/statemachine-go
 ```
 
 ```bash
-go get -u https://github.com/Gurpartap/statemachine-go
+$ go get -u https://github.com/Gurpartap/statemachine-go
 ```
 
 ## Usage
@@ -213,8 +223,7 @@ process.Machine.Build(func(m statemachine.MachineBuilder) {
 
 Transitions represent the change in state when an event is fired.
 
-Note that `.From(states ... string)`, `.To(states ...string)`, etc. accept
-variadic values.
+Note that `.From(states ...string)` accepts variadic args.
 
 ```go
 process.Machine.Build(func(m statemachine.MachineBuilder) {
@@ -222,9 +231,8 @@ process.Machine.Build(func(m statemachine.MachineBuilder) {
         e.Transition().From("unmonitored").To("stopped")
     })
 
-    // Note that you can set multiple From states.
-    // The same goes for To states.
     m.Event("start", func(e statemachine.EventBuilder) {
+        // Set multiple From states.
         e.Transition().From("unmonitored", "stopped").To("starting")
     })
 
@@ -261,16 +269,17 @@ type TransitionGuardFnBuilder interface {
 Valid TransitionGuardFunc signatures:
 
 ```go
+*bool
 func() bool
 func(transition statemachine.Transition) bool
 ```
 
 ```go
-// Assuming process.GetIsProcessRunning() returns a bool.
-
+// Assuming process.IsProcessRunning is a bool variable, and
+// process.GetIsProcessRunning is a func returning a bool value.
 m.Event("tick", func(e statemachine.EventBuilder) {
     // If guard
-    e.Transition().From("starting").To("running").If(process.GetIsProcessRunning)
+    e.Transition().From("starting").To("running").If(&process.IsProcessRunning)
 
     // Unless guard
     e.Transition().From("starting").To("stopped").Unless(process.GetIsProcessRunning)
@@ -280,6 +289,12 @@ m.Event("tick", func(e statemachine.EventBuilder) {
     e.Transition().From("stopped").To("starting").If(func(t statemachine.Transition) bool {
         return process.ShouldAutoStart && !process.GetIsProcessRunning()
     })
+    
+    // or
+
+    e.Transition().From("stopped").To("starting").
+        If(&process.ShouldAutoStart).
+        AndUnless(&process.IsProcessRunning)
 
     // ...
 })
@@ -287,13 +302,12 @@ m.Event("tick", func(e statemachine.EventBuilder) {
 
 ### Transition Callbacks
 
-Transition Callback methods are called before, around, after, or upon a
-transition failure. The following 4 transition callbacks are available:
+Transition Callback methods are called before, around, or after a transition.
+The following 3 transition callbacks are available:
 
 - [Before Transition](#before-transition)
 - [Around Transition](#around-transition)
 - [After Transition](#after-transition)
-- [After Failure](#after-failure)
 
 #### Before Transition
 
@@ -328,8 +342,8 @@ runtime failure with an appropriately describing error.
 Valid TransitionCallbackFunc signatures:
 
 ```go
-func(execFn func())
-func(t statemachine.Transition, execFn func())
+func(next func())
+func(t statemachine.Transition, next func())
 ```
 
 ```go
@@ -340,11 +354,11 @@ process.Machine.Build(func(m statemachine.MachineBuilder) {
         AroundTransition().
         From("starting", "restarting").
         To("running").
-        Do(func(execFn func()) {
+        Do(func(next func()) {
             start := time.Now()
 
-            // It'll trigger a failure if execFn is not called.
-            execFn()
+            // It'll trigger a failure if next is not called.
+            next()
 
             elapsed = time.Since(start)
 
@@ -387,9 +401,16 @@ process.Machine.Build(func(m statemachine.MachineBuilder) {
 })
 ```
 
+### Event Callbacks
+
+Event Callback methods are called after an fails to transition the state. The
+following transition callback is available:
+
+- [After Failure](#after-failure)
+
 #### After Failure
 
-After failure callback is called when there's an error while transitioning.
+After failure callback is called when there's an error with event firing.
 
 Valid TransitionCallbackFunc signatures:
 
@@ -403,10 +424,7 @@ func(t statemachine.Transition, err error)
 process.Machine.Build(func(m statemachine.MachineBuilder) {
     // ...
 
-    m.
-        AfterFailure().
-        FromAny().
-        ToAny().
+    m.AfterFailure().OnAnyEvent().
         Do(func(t statemachine.Transition, err error) {
             log.Printf("Error occurred when transitioning from '%s' to '%s':\n", t.From(), t.To())
             log.Println(err)
@@ -489,23 +507,42 @@ m.BeforeTransition().From("idle").ToAny().Do(someFunc)
 m.AroundTransition().From("state_x").ToAnyExcept("state_y").Do(someFunc)
 
 m.AfterTransition().FromAny().ToAny().Do(someFunc)
+```
 
-m.AfterFailure().FromAnyExcept("state_z").ToSame().Do(someFunc)
+#### Event Callback Matchers
+
+These may match on one or more `events`. 
+
+```go
+type EventCallbackBuilder interface {
+	On(events ...string) EventCallbackOnBuilder
+	OnAnyEvent() EventCallbackOnBuilder
+	OnAnyEventExcept(events ...string) EventCallbackOnBuilder
+}
+
+type EventCallbackOnBuilder interface {
+	Do(callbackFunc EventCallbackFunc) EventCallbackOnBuilder
+}
+```
+
+__Examples:__
+
+```go
+m.AfterFailure().OnAnyEventExcept("event_z").Do(someFunc)
 ```
 
 #### Callback Functions
 
 Any callback function's arguments (and return types) are dynamically set based
 on what types are defined (dependency injection), and therefore, unnecessary
-variables may be skipped. In other words, all input parameters are optional and
-return types are optional.
+variables may be skipped. In other words, all input parameters are optional.
 
 For example, if your BeforeTransition() callback does not need access to the
 `statemachine.Transition` variable, you may just define the callback with a
-blank function signature: `func() bool`, instead of
-`func(t statemachine.Transition) bool`. Similarly, for an AfterFailure()
+blank function signature: `func()`, instead of
+`func(t statemachine.Transition)`. Similarly, for an AfterFailure()
 callback you can use `func(err error)`, or
-`func(t statemachine.Transition, err error)`, or even just `func()` . 
+`func(e statemachine.Event, err error)`, or even just `func()` . 
 
 ## About
 

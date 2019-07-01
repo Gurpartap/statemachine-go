@@ -8,7 +8,7 @@ import (
 
 func ExampleNewMachineBuilder() {
 	machineBuilder := statemachine.NewMachineBuilder()
-
+	machineBuilder.States(processStates...)
 	machineBuilder.InitialState("unmonitored")
 
 	machineBuilder.Event("monitor", func(e statemachine.EventBuilder) {
@@ -24,33 +24,106 @@ func ExampleNewMachineBuilder() {
 
 	machineBuilder.Build(p.Machine)
 
-	p.Machine.Fire("monitor")
+	fmt.Println(p.Machine.GetState())
+
+	if err := p.Machine.Fire("monitor"); err != nil {
+		fmt.Println(err)
+	}
 
 	fmt.Println(p.Machine.GetState())
-	//// Output: stopped
+
+	if err := p.Machine.Fire("unmonitor"); err != nil {
+		fmt.Println(err)
+	}
+
+	fmt.Println(p.Machine.GetState())
+
+	// Output: unmonitored
+	// stopped
+	// unmonitored
+}
+
+func ExampleMachineDef() {
+	// statemachine.RegisterFunc("after-callback-1", func() {
+	// 	fmt.Printf("after callback\n")
+	// })
+
+	machineDef := &statemachine.MachineDef{
+		States:       processStates,
+		InitialState: "unmonitored",
+		Events: []*statemachine.EventDef{
+			{
+				Name:        "monitor",
+				Transitions: []*statemachine.TransitionDef{{From: []string{"unmonitored"}, To: "stopped"}},
+			},
+			{
+				Name:        "unmonitor",
+				Transitions: []*statemachine.TransitionDef{{To: "unmonitored"}},
+			},
+		},
+		AfterCallbacks: []*statemachine.TransitionCallbackDef{
+			{
+				Do: []*statemachine.TransitionCallbackFuncDef{
+					// {
+					// 	RegisteredFunc: "after-callback-1",
+					// },
+					{
+						Func: func() {
+							fmt.Printf("after callback\n")
+						},
+					},
+				},
+			},
+		},
+	}
+
+	p := &ExampleProcess{}
+	p.Machine = statemachine.NewMachine()
+	p.Machine.SetMachineDef(machineDef)
+
+	fmt.Println(p.Machine.GetState())
+
+	if err := p.Machine.Fire("monitor"); err != nil {
+		fmt.Println(err)
+	}
+
+	fmt.Println(p.Machine.GetState())
+
+	if err := p.Machine.Fire("unmonitor"); err != nil {
+		fmt.Println(err)
+	}
+
+	fmt.Println(p.Machine.GetState())
+
+	// Output: unmonitored
+	// after callback
+	// stopped
+	// after callback
+	// unmonitored
 }
 
 func ExampleMachineBuilder_State() {
 	p := &ExampleProcess{}
 
-	p.Machine = statemachine.BuildNewMachine(func(builder statemachine.MachineBuilder) {
-		builder.State(
+	p.Machine = statemachine.BuildNewMachine(func(m statemachine.MachineBuilder) {
+		m.States(
 			"unmonitored", "running", "stopped",
 			"starting", "stopping", "restarting",
 		)
-		builder.InitialState("unmonitored")
+		m.InitialState("unmonitored")
 
 		// ...
 	})
 
 	fmt.Println(p.Machine.GetState())
-	//// Output: unmonitored
+	// Output: unmonitored
 }
 
 func ExampleMachineBuilder_Event() {
 	p := &ExampleProcess{}
 
 	p.Machine = statemachine.BuildNewMachine(func(m statemachine.MachineBuilder) {
+		m.States(processStates...)
 		m.InitialState("unmonitored")
 
 		m.Event("tick", func(e statemachine.EventBuilder) {
@@ -94,16 +167,19 @@ func ExampleMachineBuilder_Event() {
 		// ...
 	})
 
-	p.Machine.Fire("start")
+	if err := p.Machine.Fire("start"); err != nil {
+		fmt.Println(err)
+	}
 
 	fmt.Println(p.Machine.GetState())
-	//// Output: starting
+	// Output: starting
 }
 
 func ExampleMachineBuilder_BeforeTransition() {
 	p := &ExampleProcess{}
 
 	p.Machine = statemachine.BuildNewMachine(func(m statemachine.MachineBuilder) {
+		m.States(processStates...)
 		m.InitialState("unmonitored")
 
 		// define events here...
@@ -121,9 +197,9 @@ func ExampleMachineBuilder_BeforeTransition() {
 
 		m.BeforeTransition().FromAny().ToAny().Do(p.NotifyTriggers)
 		m.AfterTransition().FromAny().ToAny().Do(p.RecordTransition)
-		m.AfterFailure().FromAny().ToAny().Do(p.LogFailure)
+		m.AfterFailure().OnAnyEvent().Do(p.LogFailure)
 	})
 
 	fmt.Println(p.Machine.GetState())
-	//// Output: unmonitored
+	// Output: unmonitored
 }

@@ -6,6 +6,11 @@ import (
 	"github.com/Gurpartap/statemachine-go"
 )
 
+var processStates = []string{
+	"unmonitored", "running", "stopped",
+	"starting", "stopping", "restarting",
+}
+
 type ExampleProcess struct {
 	statemachine.Machine
 
@@ -25,21 +30,18 @@ func (ExampleProcess) Start()   {}
 func (ExampleProcess) Stop()    {}
 func (ExampleProcess) Restart() {}
 
-func (ExampleProcess) NotifyTriggers(t statemachine.Transition)   {}
-func (ExampleProcess) RecordTransition(t statemachine.Transition) {}
+func (ExampleProcess) NotifyTriggers(transition statemachine.Transition)   {}
+func (ExampleProcess) RecordTransition(transition statemachine.Transition) {}
 
-func (ExampleProcess) LogFailure(t statemachine.Transition, err error) {
+func (ExampleProcess) LogFailure(err error) {
 	log.Println(err)
 }
 
-func Example() {
+func Example_systemProcess() {
 	process := &ExampleProcess{}
 
 	process.Machine = statemachine.BuildNewMachine(func(machineBuilder statemachine.MachineBuilder) {
-		machineBuilder.State(
-			"unmonitored", "running", "stopped",
-			"starting", "stopping", "restarting",
-		)
+		machineBuilder.States(processStates...)
 		machineBuilder.InitialState("unmonitored")
 
 		machineBuilder.Event("tick", func(eventBuilder statemachine.EventBuilder) {
@@ -95,6 +97,7 @@ func Example() {
 
 		machineBuilder.BeforeTransition().FromAny().ToAny().Do(process.NotifyTriggers)
 		machineBuilder.AfterTransition().FromAny().ToAny().Do(process.RecordTransition)
-		machineBuilder.AfterFailure().FromAny().ToAny().Do(process.LogFailure)
+
+		machineBuilder.AfterFailure().OnAnyEvent().Do(process.LogFailure)
 	})
 }

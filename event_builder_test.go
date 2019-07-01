@@ -11,6 +11,7 @@ func ExampleNewEventBuilder() {
 	p.Machine = statemachine.NewMachine()
 
 	machineBuilder := statemachine.NewMachineBuilder()
+	machineBuilder.States(processStates...)
 	machineBuilder.InitialState("unmonitored")
 
 	eventBuilder := statemachine.NewEventBuilder("monitor")
@@ -19,8 +20,19 @@ func ExampleNewEventBuilder() {
 
 	machineBuilder.Build(p.Machine)
 
-	p.Machine.Fire("monitor")
+	fmt.Println(p.Machine.GetState())
+
+	if err := p.Machine.Fire("monitor"); err != nil {
+		fmt.Println(err)
+	}
 
 	fmt.Println(p.Machine.GetState())
-	//// Output: stopped
+
+	if err := p.Machine.Fire("monitor"); err != nil {
+		fmt.Println(err)
+	}
+
+	// Output: unmonitored
+	// stopped
+	// no matching transition
 }

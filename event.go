@@ -1,7 +1,12 @@
 package statemachine
 
-type event interface {
+// Event provides methods for accessing useful information about the
+// active event.
+type Event interface {
 	Event() string
-	Description() string
 }
 
+var _ Event = (*eventImpl)(nil)
+var _ EventBuildable = (*eventImpl)(nil)
+
+var _ Event = (*simpleEvent)(nil)

@@ -1,17 +1,26 @@
 package statemachine
 
-// machineBuildable implementation is able to consume the result of building
-// features from MachineBuilder. machineBuildable is oblivious to Machine or
+// MachineBuildable implementation is able to consume the result of building
+// features from dsl.MachineBuilder. MachineBuildable is oblivious to Machine or
 // it's implementation.
-type machineBuildable interface{}
+type MachineBuildable interface {
+	SetMachineDef(def *MachineDef)
+}
 
 // MachineBuilder provides the ability to define all features of the state
 // machine, including states, events, event transitions, and transition
 // callbacks. MachineBuilder is oblivious to Machine or it's implementation.
 type MachineBuilder interface {
-	// State pre-defines the set of known states. This is optional because
+	// Build plugs the collected feature definitions into any object
+	// that understands them (implements MachineBuildable). Use this method
+	// if you're not using Machine.Build() to define the state machine.
+	Build(machine MachineBuildable)
+
+	SetEventDef(def *EventDef)
+
+	// States pre-defines the set of known states. This is optional because
 	// all known states will be identified from other definitions.
-	State(states ...string)
+	States(states ...string)
 
 	// InitialState defines the state that the machine initializes with.
 	// Initial state must be defined for every state machine.
@@ -23,54 +32,69 @@ type MachineBuilder interface {
 	BeforeTransition() TransitionCallbackBuilder
 	AroundTransition() TransitionCallbackBuilder
 	AfterTransition() TransitionCallbackBuilder
-	AfterFailure() TransitionCallbackBuilder
-
-	// Build plugs the collected feature definitions into any object
-	// that understands them (implements machineBuildable). Use this method
-	// if you're not using Machine.Build() to define the state machine.
-	Build(machine machineBuildable)
+	AfterFailure() EventCallbackBuilder
 }
 
 // NewMachineBuilder returns a zero-valued instance of machineBuilder, which
 // implements MachineBuilder.
 func NewMachineBuilder() MachineBuilder {
-	return &machineBuilder{}
+	return &machineBuilder{
+		def: &MachineDef{},
+	}
 }
 
 // machineBuilder implements MachineBuilder.
-type machineBuilder struct{}
+type machineBuilder struct {
+	def *MachineDef
+}
 
-func (m *machineBuilder) State(states ...string) {
-	panic("not implemented")
+var _ MachineBuilder = (*machineBuilder)(nil)
+
+func (m *machineBuilder) States(states ...string) {
+	m.def.SetStates(states...)
 }
 
 func (m *machineBuilder) InitialState(state string) {
-	panic("not implemented")
+	m.def.SetInitialState(state)
 }
 
 func (m *machineBuilder) Event(name string, eventBuilderFn func(eventBuilder EventBuilder)) {
 	// TODO: Restrict public use of .Build(...) on this instance of eventBuilder.
 	eventBuilder := NewEventBuilder(name)
 	eventBuilderFn(eventBuilder)
-	eventBuilder.Build(m)
+	e := newEventImpl()
+	eventBuilder.Build(e)
+	m.def.AddEvent(e.def)
 }
 
 func (m *machineBuilder) BeforeTransition() TransitionCallbackBuilder {
-	return newTransitionCallbackBuilder()
+	transitionCallbackDef := &TransitionCallbackDef{validateFor: "BeforeTransition"}
+	m.def.AddBeforeCallback(transitionCallbackDef)
+	return newTransitionCallbackBuilder(transitionCallbackDef)
 }
 
 func (m *machineBuilder) AroundTransition() TransitionCallbackBuilder {
-	return newTransitionCallbackBuilder()
+	transitionCallbackDef := &TransitionCallbackDef{validateFor: "AroundTransition"}
+	m.def.AddAroundCallback(transitionCallbackDef)
+	return newTransitionCallbackBuilder(transitionCallbackDef)
 }
 
 func (m *machineBuilder) AfterTransition() TransitionCallbackBuilder {
-	return newTransitionCallbackBuilder()
+	transitionCallbackDef := &TransitionCallbackDef{validateFor: "AfterTransition"}
+	m.def.AddAfterCallback(transitionCallbackDef)
+	return newTransitionCallbackBuilder(transitionCallbackDef)
 }
 
-func (m *machineBuilder) AfterFailure() TransitionCallbackBuilder {
-	return newTransitionCallbackBuilder()
+func (m *machineBuilder) AfterFailure() EventCallbackBuilder {
+	transitionCallbackDef := &EventCallbackDef{validateFor: "AfterFailure"}
+	m.def.AddFailureCallback(transitionCallbackDef)
+	return newEventCallbackBuilder(transitionCallbackDef)
 }
 
-func (m *machineBuilder) Build(machine machineBuildable) {
-	panic("not implemented")
+func (m *machineBuilder) Build(machine MachineBuildable) {
+	machine.SetMachineDef(m.def)
+}
+
+func (m *machineBuilder) SetEventDef(def *EventDef) {
+	m.def.AddEvent(def)
 }

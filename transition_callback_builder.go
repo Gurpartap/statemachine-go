@@ -6,20 +6,19 @@ package statemachine
 //
 // For BeforeTransition and AfterTransition:
 //
-//	func()
-//	func(t statemachine.Transition)
+// 	func()
+// 	func(transition statemachine.Transition)
 //
-// For AroundTransition callback, it must accept a `func` type arg:
+// For AroundTransition callback, it must accept a `func()` type arg. The
+// callback must call `next()` to continue the transition.
 //
-//	func(execFn func())
-//	func(t statemachine.Transition, execFn func())
+// 	func(next func())
+// 	func(transition statemachine.Transition, next func())
 //
-// For AfterFailure callback, the func may optionally accept an `error` type
-// arg:
+// For AfterFailure callback, it must accept an `error` type arg:
 //
-//	func()
-//	func(err error)
-//	func(t statemachine.Transition, err error)
+// 	func(err error)
+// 	func(transition statemachine.Transition, err error)
 type TransitionCallbackFunc interface{}
 
 // TransitionCallbackBuilder provides the ability to define the `from`
@@ -55,98 +54,135 @@ type TransitionCallbackExceptFromBuilder interface {
 // (or TransitionCallbackExceptFromBuilder) and provides the ability to define
 // the transition callback func.
 type TransitionCallbackToBuilder interface {
-	Do(callbackFn TransitionCallbackFunc)
+	Do(callbackFunc TransitionCallbackFunc) TransitionCallbackToBuilder
 }
 
 // newTransitionCallbackBuilder returns a zero-valued instance of
 // transitionCallbackBuilder, which implements
 // TransitionCallbackBuilder.
-func newTransitionCallbackBuilder() TransitionCallbackBuilder {
-	return &transitionCallbackBuilder{}
+func newTransitionCallbackBuilder(transitionCallbackDef *TransitionCallbackDef) TransitionCallbackBuilder {
+	return &transitionCallbackBuilder{
+		transitionCallbackDef: transitionCallbackDef,
+	}
 }
 
 // transitionCallbackBuilder implements TransitionCallbackBuilder
-type transitionCallbackBuilder struct{}
+type transitionCallbackBuilder struct {
+	transitionCallbackDef *TransitionCallbackDef
+}
+
+var _ TransitionCallbackBuilder = (*transitionCallbackBuilder)(nil)
 
 func (builder *transitionCallbackBuilder) From(states ...string) TransitionCallbackFromBuilder {
-	return newTransitionCallbackFromBuilder()
+	builder.transitionCallbackDef.SetFrom(states...)
+	return newTransitionCallbackFromBuilder(builder.transitionCallbackDef)
 }
 
 func (builder *transitionCallbackBuilder) FromAny() TransitionCallbackFromBuilder {
-	return newTransitionCallbackFromBuilder()
+	builder.transitionCallbackDef.SetFromAnyExcept()
+	return newTransitionCallbackFromBuilder(builder.transitionCallbackDef)
 }
 
 func (builder *transitionCallbackBuilder) FromAnyExcept(states ...string) TransitionCallbackFromBuilder {
-	return newTransitionCallbackFromBuilder()
+	builder.transitionCallbackDef.SetFromAnyExcept(states...)
+	return newTransitionCallbackFromBuilder(builder.transitionCallbackDef)
 }
 
 // newTransitionCallbackFromBuilder returns a zero-valued instance of
 // transitionCallbackFromBuilder, which implements
 // TransitionCallbackFromBuilder.
-func newTransitionCallbackFromBuilder() TransitionCallbackFromBuilder {
-	return &transitionCallbackFromBuilder{}
+func newTransitionCallbackFromBuilder(transitionCallbackDef *TransitionCallbackDef) TransitionCallbackFromBuilder {
+	return &transitionCallbackFromBuilder{
+		transitionCallbackDef: transitionCallbackDef,
+	}
 }
 
 // transitionCallbackFromBuilder implements TransitionCallbackFromBuilder
-type transitionCallbackFromBuilder struct{}
+type transitionCallbackFromBuilder struct {
+	transitionCallbackDef *TransitionCallbackDef
+}
+
+var _ TransitionCallbackFromBuilder = (*transitionCallbackFromBuilder)(nil)
 
 func (builder *transitionCallbackFromBuilder) ExceptFrom(states ...string) TransitionCallbackExceptFromBuilder {
-	return newTransitionCallbackExceptFromBuilder()
+	builder.transitionCallbackDef.SetFromAnyExcept(states...)
+	return newTransitionCallbackExceptFromBuilder(builder.transitionCallbackDef)
 }
 
 func (builder *transitionCallbackFromBuilder) To(states ...string) TransitionCallbackToBuilder {
-	return newTransitionCallbackToBuilder()
+	builder.transitionCallbackDef.SetTo(states...)
+	return newTransitionCallbackToBuilder(builder.transitionCallbackDef)
 }
 
 func (builder *transitionCallbackFromBuilder) ToSame() TransitionCallbackToBuilder {
-	return newTransitionCallbackToBuilder()
+	builder.transitionCallbackDef.SetSame()
+	return newTransitionCallbackToBuilder(builder.transitionCallbackDef)
 }
 
 func (builder *transitionCallbackFromBuilder) ToAny() TransitionCallbackToBuilder {
-	return newTransitionCallbackToBuilder()
+	builder.transitionCallbackDef.SetToAnyExcept()
+	return newTransitionCallbackToBuilder(builder.transitionCallbackDef)
 }
 
 func (builder *transitionCallbackFromBuilder) ToAnyExcept(states ...string) TransitionCallbackToBuilder {
-	return newTransitionCallbackToBuilder()
+	builder.transitionCallbackDef.SetToAnyExcept(states...)
+	return newTransitionCallbackToBuilder(builder.transitionCallbackDef)
 }
 
 // newTransitionCallbackExceptFromBuilder returns a zero-valued instance of
 // transitionCallbackExceptFromBuilder, which implements
 // TransitionCallbackExceptFromBuilder.
-func newTransitionCallbackExceptFromBuilder() TransitionCallbackExceptFromBuilder {
-	return &transitionCallbackExceptFromBuilder{}
+func newTransitionCallbackExceptFromBuilder(transitionCallbackDef *TransitionCallbackDef) TransitionCallbackExceptFromBuilder {
+	return &transitionCallbackExceptFromBuilder{
+		transitionCallbackDef: transitionCallbackDef,
+	}
 }
 
 // transitionCallbackExceptFromBuilder implements
 // TransitionCallbackExceptFromBuilder
-type transitionCallbackExceptFromBuilder struct{}
+type transitionCallbackExceptFromBuilder struct {
+	transitionCallbackDef *TransitionCallbackDef
+}
+
+var _ TransitionCallbackExceptFromBuilder = (*transitionCallbackExceptFromBuilder)(nil)
 
 func (builder *transitionCallbackExceptFromBuilder) To(states ...string) TransitionCallbackToBuilder {
-	return newTransitionCallbackToBuilder()
+	builder.transitionCallbackDef.SetTo(states...)
+	return newTransitionCallbackToBuilder(builder.transitionCallbackDef)
 }
 
 func (builder *transitionCallbackExceptFromBuilder) ToSame() TransitionCallbackToBuilder {
-	return newTransitionCallbackToBuilder()
+	// builder.transitionCallbackDef.SetSame()
+	return newTransitionCallbackToBuilder(builder.transitionCallbackDef)
 }
 
 func (builder *transitionCallbackExceptFromBuilder) ToAny() TransitionCallbackToBuilder {
-	return newTransitionCallbackToBuilder()
+	builder.transitionCallbackDef.SetToAnyExcept()
+	return newTransitionCallbackToBuilder(builder.transitionCallbackDef)
 }
 
 func (builder *transitionCallbackExceptFromBuilder) ToAnyExcept(states ...string) TransitionCallbackToBuilder {
-	return newTransitionCallbackToBuilder()
+	builder.transitionCallbackDef.SetToAnyExcept(states...)
+	return newTransitionCallbackToBuilder(builder.transitionCallbackDef)
 }
 
 // newTransitionCallbackToBuilder returns a zero-valued instance of
 // transitionCallbackToBuilder, which implements
 // TransitionCallbackToBuilder.
-func newTransitionCallbackToBuilder() TransitionCallbackToBuilder {
-	return &transitionCallbackToBuilder{}
+func newTransitionCallbackToBuilder(transitionCallbackDef *TransitionCallbackDef) TransitionCallbackToBuilder {
+	return &transitionCallbackToBuilder{
+		transitionCallbackDef: transitionCallbackDef,
+	}
 }
 
 // transitionCallbackToBuilder implements TransitionCallbackToBuilder
-type transitionCallbackToBuilder struct{}
+type transitionCallbackToBuilder struct {
+	transitionCallbackDef *TransitionCallbackDef
+}
 
-func (builder *transitionCallbackToBuilder) Do(callbackFn TransitionCallbackFunc) {
+var _ TransitionCallbackToBuilder = (*transitionCallbackToBuilder)(nil)
 
+func (builder *transitionCallbackToBuilder) Do(callbackFunc TransitionCallbackFunc) TransitionCallbackToBuilder {
+	builder.transitionCallbackDef.AddCallbackFunc(callbackFunc)
+	return builder
 }
