@@ -105,6 +105,8 @@ func (s *TransitionCallbackDef) assertCallbackKind(callbackFunc TransitionCallba
 		optionalArgs := make(map[reflect.Type]struct{})
 		requiredArgs := make(map[reflect.Type]struct{})
 
+		optionalArgs[reflect.TypeOf(new(Machine))] = struct{}{}
+
 		switch s.validateFor {
 		case "BeforeTransition":
 			optionalArgs[reflect.TypeOf(new(Transition))] = struct{}{}

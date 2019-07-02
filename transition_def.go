@@ -38,9 +38,10 @@ func execGuard(guard TransitionGuard, args map[reflect.Type]interface{}) bool {
 	}
 }
 
-func (s *TransitionDef) IsAllowed(fromState string) bool {
+func (s *TransitionDef) IsAllowed(fromState string, machine Machine) bool {
 	if len(s.IfGuards) != 0 || len(s.UnlessGuards) != 0 {
 		args := make(map[reflect.Type]interface{})
+		args[reflect.TypeOf(new(Machine))] = machine
 		args[reflect.TypeOf(new(Transition))] = newTransitionImpl(
 			fromState,
 			s.To,

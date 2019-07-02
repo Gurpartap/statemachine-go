@@ -1,24 +1,30 @@
 package statemachine
 
 // TransitionCallbackFunc is a func with dynamic args. Any callback func of
-// this type may accept a Transition object as input. Return values will be
-// ignored.
+// this type may accept a Machine and/or Transition object as inputs. Return
+// values will be ignored.
 //
 // For BeforeTransition and AfterTransition:
 //
 // 	func()
+// 	func(machine statemachine.Machine)
 // 	func(transition statemachine.Transition)
+// 	func(machine statemachine.Machine, transition statemachine.Transition)
 //
 // For AroundTransition callback, it must accept a `func()` type arg. The
 // callback must call `next()` to continue the transition.
 //
 // 	func(next func())
+// 	func(machine statemachine.Machine, next func())
 // 	func(transition statemachine.Transition, next func())
+// 	func(machine statemachine.Machine, transition statemachine.Transition, next func())
 //
 // For AfterFailure callback, it must accept an `error` type arg:
 //
 // 	func(err error)
+// 	func(machine statemachine.Machine, err error)
 // 	func(transition statemachine.Transition, err error)
+// 	func(machine statemachine.Machine, transition statemachine.Transition, err error)
 type TransitionCallbackFunc interface{}
 
 // TransitionCallbackBuilder provides the ability to define the `from`

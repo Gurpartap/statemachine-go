@@ -116,7 +116,7 @@ func (m *machineImpl) Fire(event string) (err error) {
 			err = ErrNoMatchingTransition
 			continue
 		}
-		if !transitionDef.IsAllowed(fromState) {
+		if !transitionDef.IsAllowed(fromState, m) {
 			err = ErrTransitionNotAllowed
 			continue
 		}
@@ -203,6 +203,7 @@ func (m *machineImpl) applyTransitionAroundCallbacks(callbacks []*TransitionCall
 }
 
 func (m *machineImpl) exec(callback TransitionCallbackFunc, args map[reflect.Type]interface{}) {
+	args[reflect.TypeOf(new(Machine))] = m
 	fn := dynafunc.NewDynamicFunc(callback, args)
 	if err := fn.Call(); err != nil {
 		panic(err)
