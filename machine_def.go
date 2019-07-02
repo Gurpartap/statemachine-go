@@ -1,16 +1,16 @@
 package statemachine
 
 type MachineDef struct {
-	States       []string
-	InitialState string
-	Events       map[string]*EventDef   `json:",omitempty"`
-	Submachines  map[string]*MachineDef `json:",omitempty"`
+	States       []string               `hcl:"states"`
+	InitialState string                 `hcl:"initial_state"`
+	Events       map[string]*EventDef   `json:",omitempty" hcl:"event" hcle:"omitempty"`
+	Submachines  map[string]*MachineDef `json:",omitempty" hcl:"submachine" hcle:"omitempty"`
 
-	BeforeCallbacks []*TransitionCallbackDef `json:",omitempty"`
-	AroundCallbacks []*TransitionCallbackDef `json:",omitempty"`
-	AfterCallbacks  []*TransitionCallbackDef `json:",omitempty"`
+	BeforeCallbacks []*TransitionCallbackDef `json:",omitempty" hcl:"before_callbacks" hcle:"omitempty"`
+	AroundCallbacks []*TransitionCallbackDef `json:",omitempty" hcl:"around_callbacks" hcle:"omitempty"`
+	AfterCallbacks  []*TransitionCallbackDef `json:",omitempty" hcl:"after_callbacks" hcle:"omitempty"`
 
-	FailureCallbacks []*EventCallbackDef `json:",omitempty"`
+	FailureCallbacks []*EventCallbackDef `json:",omitempty" hcl:"failure_callbacks" hcle:"omitempty"`
 }
 
 func NewMachineDef() *MachineDef {

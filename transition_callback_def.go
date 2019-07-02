@@ -6,19 +6,19 @@ import (
 )
 
 type TransitionCallbackFuncDef struct {
-	RegisteredFunc string                 `json:",omitempty"`
-	Func           TransitionCallbackFunc `json:"-"`
+	RegisteredFunc string                 `json:",omitempty" hcl:"registered_func" hcle:"omitempty"`
+	Func           TransitionCallbackFunc `json:"-" hcle:"omit"`
 }
 
 type TransitionCallbackDef struct {
-	From       []string                     `json:",omitempty"`
-	ExceptFrom []string                     `json:",omitempty"`
-	To         []string                     `json:",omitempty"`
-	ExceptTo   []string                     `json:",omitempty"`
-	Do         []*TransitionCallbackFuncDef `json:",omitempty"`
-	ExitInto   string                       `json:",omitempty"`
+	From       []string                     `json:",omitempty" hcl:"from" hcle:"omitempty"`
+	ExceptFrom []string                     `json:",omitempty" hcl:"except_from" hcle:"omitempty"`
+	To         []string                     `json:",omitempty" hcl:"to" hcle:"omitempty"`
+	ExceptTo   []string                     `json:",omitempty" hcl:"except_to" hcle:"omitempty"`
+	Do         []*TransitionCallbackFuncDef `json:",omitempty" hcl:"do" hcle:"omitempty"`
+	ExitInto   string                       `json:",omitempty" hcl:"exit_into" hcle:"omitempty"`
 
-	validateFor string `json:"-"`
+	validateFor string `json:"-" hcle:"omit"`
 }
 
 func (s *TransitionCallbackDef) Matches(from, to string) bool {

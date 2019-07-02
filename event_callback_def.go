@@ -6,16 +6,16 @@ import (
 )
 
 type EventCallbackFuncDef struct {
-	RegisteredFunc string            `json:",omitempty"`
-	Func           EventCallbackFunc `json:"-"`
+	RegisteredFunc string            `json:",omitempty" hcl:"registered_func" hcle:"omitempty"`
+	Func           EventCallbackFunc `json:"-" hcle:"omit"`
 }
 
 type EventCallbackDef struct {
-	On       []string                `json:",omitempty"`
-	ExceptOn []string                `json:",omitempty"`
-	Do       []*EventCallbackFuncDef `json:",omitempty"`
+	On       []string                `json:",omitempty" hcl:"on" hcle:"omitempty"`
+	ExceptOn []string                `json:",omitempty" hcl:"except_on" hcle:"omitempty"`
+	Do       []*EventCallbackFuncDef `json:",omitempty" hcl:"do" hcle:"omitempty"`
 
-	validateFor string `json:"-"`
+	validateFor string `json:"-" hcle:"omit"`
 }
 
 func (s *EventCallbackDef) MatchesEvent(event string) bool {

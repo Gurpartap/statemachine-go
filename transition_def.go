@@ -7,16 +7,16 @@ import (
 )
 
 type TransitionGuardDef struct {
-	RegisteredFunc string          `json:",omitempty"`
-	Guard          TransitionGuard `json:"-"`
+	RegisteredFunc string          `json:",omitempty" hcl:"registered_func" hcle:"omitempty"`
+	Guard          TransitionGuard `json:"-" hcle:"omit"`
 }
 
 type TransitionDef struct {
-	From         []string `json:",omitempty"`
-	ExceptFrom   []string `json:",omitempty"`
-	To           string
-	IfGuards     []*TransitionGuardDef `json:",omitempty"`
-	UnlessGuards []*TransitionGuardDef `json:",omitempty"`
+	From         []string              `json:",omitempty" hcl:"from" hcle:"omitempty"`
+	ExceptFrom   []string              `json:",omitempty" hcl:"except_from" hcle:"omitempty"`
+	To           string                `hcl:"to"`
+	IfGuards     []*TransitionGuardDef `json:",omitempty" hcl:"if_guard" hcle:"omitempty"`
+	UnlessGuards []*TransitionGuardDef `json:",omitempty" hcl:"unless_guard" hcle:"omitempty"`
 }
 
 func execGuard(guard TransitionGuard, args map[reflect.Type]interface{}) bool {
