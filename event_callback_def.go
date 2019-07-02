@@ -5,30 +5,31 @@ import (
 	"reflect"
 )
 
-type definedEvents struct {
-	Events []string `json:",omitempty"`
-	Except []string `json:",omitempty"`
+type EventCallbackFuncDef struct {
+	RegisteredFunc string            `json:",omitempty"`
+	Func           EventCallbackFunc `json:"-"`
 }
 
 type EventCallbackDef struct {
-	On definedEvents
-	Do []EventCallbackFunc `json:"-"`
+	On       []string                `json:",omitempty"`
+	ExceptOn []string                `json:",omitempty"`
+	Do       []*EventCallbackFuncDef `json:",omitempty"`
 
-	validateFor string
+	validateFor string `json:"-"`
 }
 
 func (s *EventCallbackDef) MatchesEvent(event string) bool {
-	for _, e := range s.On.Except {
+	for _, e := range s.ExceptOn {
 		if e == event {
 			return false
 		}
 	}
 
-	if len(s.On.Events) == 0 {
+	if len(s.On) == 0 {
 		return true
 	}
 
-	for _, e := range s.On.Events {
+	for _, e := range s.On {
 		if e == event {
 			return true
 		}
@@ -39,19 +40,19 @@ func (s *EventCallbackDef) MatchesEvent(event string) bool {
 
 func (s *EventCallbackDef) SetOn(events ...string) {
 	for _, event := range events {
-		s.On.Events = append(s.On.Events, event)
+		s.On = append(s.On, event)
 	}
 }
 
 func (s *EventCallbackDef) SetOnAnyEventExcept(exceptEvents ...string) {
 	for _, exceptEvent := range exceptEvents {
-		s.On.Except = append(s.On.Except, exceptEvent)
+		s.ExceptOn = append(s.ExceptOn, exceptEvent)
 	}
 }
 
 func (s *EventCallbackDef) AddCallbackFunc(callbackFunc EventCallbackFunc) {
 	s.assertCallbackKind(callbackFunc)
-	s.Do = append(s.Do, callbackFunc)
+	s.Do = append(s.Do, &EventCallbackFuncDef{Func: callbackFunc})
 }
 
 func (s *EventCallbackDef) assertCallbackKind(callbackFunc EventCallbackFunc) {

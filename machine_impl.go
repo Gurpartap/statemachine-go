@@ -80,7 +80,7 @@ func (m *machineImpl) Fire(event string) (err error) {
 			for _, callbackDef := range m.def.FailureCallbacks {
 				if callbackDef.MatchesEvent(event) {
 					for _, callback := range callbackDef.Do {
-						m.exec(callback, args)
+						m.exec(callback.Func, args)
 					}
 				}
 			}

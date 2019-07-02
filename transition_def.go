@@ -6,12 +6,17 @@ import (
 	"github.com/Gurpartap/statemachine-go/internal/dynafunc"
 )
 
+type TransitionGuardDef struct {
+	RegisteredFunc string          `json:",omitempty"`
+	Guard          TransitionGuard `json:"-"`
+}
+
 type TransitionDef struct {
 	From         []string `json:",omitempty"`
 	ExceptFrom   []string `json:",omitempty"`
 	To           string
-	IfGuards     []TransitionGuard `json:"-"`
-	UnlessGuards []TransitionGuard `json:"-"`
+	IfGuards     []*TransitionGuardDef `json:",omitempty"`
+	UnlessGuards []*TransitionGuardDef `json:",omitempty"`
 }
 
 func execGuard(guard TransitionGuard, args map[reflect.Type]interface{}) bool {
@@ -43,7 +48,7 @@ func (s *TransitionDef) IsAllowed(fromState string) bool {
 
 		for _, guard := range s.IfGuards {
 			// if !ok { dont allow }
-			if ok := execGuard(guard, args); !ok {
+			if ok := execGuard(guard.Guard, args); !ok {
 				// fmt.Printf("❌1 from: %s to: %s\n", fromState, s.To.State())
 				return false
 			}
@@ -51,7 +56,7 @@ func (s *TransitionDef) IsAllowed(fromState string) bool {
 
 		for _, guard := range s.UnlessGuards {
 			// if ok { dont allow }
-			if ok := execGuard(guard, args); ok {
+			if ok := execGuard(guard.Guard, args); ok {
 				// fmt.Printf("❌2 from: %s to: %s\n", fromState, s.To.State())
 				return false
 			}
@@ -102,12 +107,12 @@ func (s *TransitionDef) SetTo(state string) {
 
 func (s *TransitionDef) AddIfGuard(guard TransitionGuard) {
 	assertGuardKind(guard)
-	s.IfGuards = append(s.IfGuards, guard)
+	s.IfGuards = append(s.IfGuards, &TransitionGuardDef{Guard: guard})
 }
 
 func (s *TransitionDef) AddUnlessGuard(guard TransitionGuard) {
 	assertGuardKind(guard)
-	s.UnlessGuards = append(s.UnlessGuards, guard)
+	s.UnlessGuards = append(s.UnlessGuards, &TransitionGuardDef{Guard: guard})
 }
 
 func assertGuardKind(guard TransitionGuard) {
