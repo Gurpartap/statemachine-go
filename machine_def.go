@@ -4,6 +4,7 @@ type MachineDef struct {
 	States       []string
 	InitialState string
 	Events       map[string]*EventDef   `json:",omitempty"`
+	Submachines  map[string]*MachineDef `json:",omitempty"`
 
 	BeforeCallbacks []*TransitionCallbackDef `json:",omitempty"`
 	AroundCallbacks []*TransitionCallbackDef `json:",omitempty"`
@@ -15,6 +16,7 @@ type MachineDef struct {
 func NewMachineDef() *MachineDef {
 	return &MachineDef{
 		Events:      map[string]*EventDef{},
+		Submachines: map[string]*MachineDef{},
 	}
 }
 
@@ -24,6 +26,10 @@ func (def *MachineDef) SetStates(states ...string) {
 
 func (def *MachineDef) SetInitialState(state string) {
 	def.InitialState = state
+}
+
+func (def *MachineDef) SetSubmachine(state string, submachine *MachineDef) {
+	def.Submachines[state] = submachine
 }
 
 func (def *MachineDef) AddEvent(event string, eventDef *EventDef) {

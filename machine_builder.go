@@ -26,6 +26,8 @@ type MachineBuilder interface {
 	// Initial state must be defined for every state machine.
 	InitialState(state string)
 
+	Submachine(state string, submachineBuilderFn func(submachineBuilder MachineBuilder))
+
 	// Event provides the ability to define possible transitions for an event.
 	Event(name string, eventBuilderFn func(eventBuilder EventBuilder))
 
@@ -56,6 +58,12 @@ func (m *machineBuilder) States(states ...string) {
 
 func (m *machineBuilder) InitialState(state string) {
 	m.def.SetInitialState(state)
+}
+
+func (m *machineBuilder) Submachine(state string, submachineBuilderFn func(submachineBuilder MachineBuilder)) {
+	submachineBuilder := &machineBuilder{def: NewMachineDef()}
+	submachineBuilderFn(submachineBuilder)
+	m.def.SetSubmachine(state, submachineBuilder.def)
 }
 
 func (m *machineBuilder) Event(name string, eventBuilderFn func(eventBuilder EventBuilder)) {

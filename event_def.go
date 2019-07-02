@@ -1,8 +1,8 @@
 package statemachine
 
 type EventDef struct {
-	Transitions []*TransitionDef
 	// Name        string
+	Transitions []*TransitionDef `json:",omitempty"`
 }
 
 func (def *EventDef) AddTransition(transitionDef *TransitionDef) {

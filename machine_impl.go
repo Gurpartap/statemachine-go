@@ -1,6 +1,7 @@
 package statemachine
 
 import (
+	"fmt"
 	"reflect"
 	"sync"
 
@@ -13,7 +14,11 @@ type machineImpl struct {
 	previousState string
 	currentState  string
 
-	mutex sync.RWMutex
+	supermachine *machineImpl
+	submachines  map[string]*machineImpl
+
+	mutex     sync.RWMutex
+	hasExited bool
 }
 
 // NewMachine returns a zero-valued instance of machine, which implements
@@ -21,6 +26,7 @@ type machineImpl struct {
 func NewMachine() Machine {
 	return &machineImpl{
 		def:         NewMachineDef(),
+		submachines: map[string]*machineImpl{},
 	}
 }
 
@@ -44,6 +50,7 @@ func (m *machineImpl) SetMachineDef(def *MachineDef) {
 	defer m.mutex.Unlock()
 
 	// b, _ := json.MarshalIndent(def, "", "  ")
+	// b, _ := hclencoder.Encode(def)
 	// fmt.Printf("machine def = %s\n", string(b))
 
 	m.def = def
@@ -87,6 +94,9 @@ func (m *machineImpl) Fire(event string) (err error) {
 		}
 
 		m.mutex.Unlock()
+		if m.hasExited {
+			*m = machineImpl{}
+		}
 	}()
 
 	if m.IsState("") {
@@ -127,8 +137,47 @@ func (m *machineImpl) Fire(event string) (err error) {
 		break
 	}
 	if err != nil {
-		return err
+		return
 	}
+
+	err = m.applyTransition(transition)
+
+	return
+}
+
+func (m *machineImpl) Submachine(state string) (Machine, error) {
+	if m.currentState != state {
+		return nil, ErrStateNotCurrent
+	}
+	return m.submachines[state], nil
+}
+
+func (m *machineImpl) setCurrentState(state string) {
+	for _, s := range m.def.States {
+		if s == state {
+			m.previousState = m.currentState
+			m.currentState = state
+			return
+		}
+	}
+
+	for s, submachineDef := range m.def.Submachines {
+		if s == state {
+			m.submachines[s] = &machineImpl{
+				supermachine: m,
+				submachines:  map[string]*machineImpl{},
+			}
+			m.submachines[s].SetMachineDef(submachineDef)
+
+			m.previousState = m.currentState
+			m.currentState = state
+			return
+		}
+	}
+}
+
+func (m *machineImpl) applyTransition(transition Transition) error {
+	fromState := m.GetState()
 
 	args := make(map[reflect.Type]interface{})
 	args[reflect.TypeOf(new(Transition))] = transition
@@ -154,24 +203,24 @@ func (m *machineImpl) Fire(event string) (err error) {
 	m.applyTransitionAroundCallbacks(matchingCallbacks, args, applyTransition)
 
 	for _, callbackDef := range m.def.AfterCallbacks {
-		if callbackDef.Matches(fromState, transition.To()) {
-			for _, callback := range callbackDef.Do {
-				m.exec(callback.Func, args)
+		if !callbackDef.Matches(fromState, transition.To()) {
+			continue
+		}
+		for _, callback := range callbackDef.Do {
+			m.exec(callback.Func, args)
+		}
+		if callbackDef.ExitInto != "" && m.supermachine != nil {
+			if err := m.supermachine.applyTransition(
+				newTransitionImpl(m.supermachine.currentState, callbackDef.ExitInto),
+			); err != nil {
+				return fmt.Errorf("could not exit submachine: %s", err)
 			}
+			m.hasExited = true
+			return nil
 		}
 	}
 
 	return nil
-}
-
-func (m *machineImpl) setCurrentState(state string) {
-	for _, s := range m.def.States {
-		if s == state {
-			m.previousState = m.currentState
-			m.currentState = state
-			break
-		}
-	}
 }
 
 // callback1(next: {

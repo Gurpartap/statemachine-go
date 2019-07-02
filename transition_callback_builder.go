@@ -60,7 +60,14 @@ type TransitionCallbackExceptFromBuilder interface {
 // (or TransitionCallbackExceptFromBuilder) and provides the ability to define
 // the transition callback func.
 type TransitionCallbackToBuilder interface {
-	Do(callbackFunc TransitionCallbackFunc) TransitionCallbackToBuilder
+	ExitInto(supermachineState string)
+	Do(callbackFunc TransitionCallbackFunc) TransitionCallbackDoBuilder
+}
+
+// TransitionCallbackDoBuilder inherits from TransitionCallbackToBuilder
+// and provides the ability to define additional transition callback funcs.
+type TransitionCallbackDoBuilder interface {
+	Do(callbackFunc TransitionCallbackFunc) TransitionCallbackDoBuilder
 }
 
 // newTransitionCallbackBuilder returns a zero-valued instance of
@@ -188,7 +195,32 @@ type transitionCallbackToBuilder struct {
 
 var _ TransitionCallbackToBuilder = (*transitionCallbackToBuilder)(nil)
 
-func (builder *transitionCallbackToBuilder) Do(callbackFunc TransitionCallbackFunc) TransitionCallbackToBuilder {
+func (builder *transitionCallbackToBuilder) ExitInto(supermachineState string) {
+	builder.transitionCallbackDef.SetExitInto(supermachineState)
+}
+
+func (builder *transitionCallbackToBuilder) Do(callbackFunc TransitionCallbackFunc) TransitionCallbackDoBuilder {
+	builder.transitionCallbackDef.AddCallbackFunc(callbackFunc)
+	return newTransitionCallbackDoBuilder(builder.transitionCallbackDef)
+}
+
+// newTransitionCallbackDoBuilder returns a zero-valued instance of
+// transitionCallbackDoBuilder, which implements
+// TransitionCallbackDoBuilder.
+func newTransitionCallbackDoBuilder(transitionCallbackDef *TransitionCallbackDef) TransitionCallbackDoBuilder {
+	return &transitionCallbackDoBuilder{
+		transitionCallbackDef: transitionCallbackDef,
+	}
+}
+
+// transitionCallbackDoBuilder implements TransitionCallbackDoBuilder
+type transitionCallbackDoBuilder struct {
+	transitionCallbackDef *TransitionCallbackDef
+}
+
+var _ TransitionCallbackDoBuilder = (*transitionCallbackDoBuilder)(nil)
+
+func (builder *transitionCallbackDoBuilder) Do(callbackFunc TransitionCallbackFunc) TransitionCallbackDoBuilder {
 	builder.transitionCallbackDef.AddCallbackFunc(callbackFunc)
 	return builder
 }

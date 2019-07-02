@@ -11,13 +11,14 @@ type TransitionCallbackFuncDef struct {
 }
 
 type TransitionCallbackDef struct {
-	From       []string `json:",omitempty"`
-	ExceptFrom []string `json:",omitempty"`
-	To         []string `json:",omitempty"`
-	ExceptTo   []string `json:",omitempty"`
-	Do         []*TransitionCallbackFuncDef
+	From       []string                     `json:",omitempty"`
+	ExceptFrom []string                     `json:",omitempty"`
+	To         []string                     `json:",omitempty"`
+	ExceptTo   []string                     `json:",omitempty"`
+	Do         []*TransitionCallbackFuncDef `json:",omitempty"`
+	ExitInto   string                       `json:",omitempty"`
 
-	validateFor string
+	validateFor string `json:"-"`
 }
 
 func (s *TransitionCallbackDef) Matches(from, to string) bool {
@@ -87,6 +88,10 @@ func (s *TransitionCallbackDef) SetToAnyExcept(exceptStates ...string) {
 	for _, exceptState := range exceptStates {
 		s.ExceptTo = append(s.ExceptTo, exceptState)
 	}
+}
+
+func (s *TransitionCallbackDef) SetExitInto(supermachineState string) {
+	s.ExitInto = supermachineState
 }
 
 func (s *TransitionCallbackDef) AddCallbackFunc(callbackFunc TransitionCallbackFunc) {

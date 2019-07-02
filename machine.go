@@ -10,6 +10,8 @@ type Machine interface {
 	SetCurrentState(state string)
 	IsState(state string) bool
 
+	Submachine(state string) (Machine, error)
+
 	Fire(event string) error
 }
 
