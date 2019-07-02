@@ -4,7 +4,7 @@ package statemachine
 // features from EventBuilder. EventBuildable is oblivious to Event or
 // it's implementation.
 type EventBuildable interface {
-	SetEventDef(def *EventDef)
+	SetEventDef(event string, def *EventDef)
 }
 
 // EventBuilder provides the ability to define an event along with its
@@ -24,15 +24,15 @@ type EventBuilder interface {
 // implements EventBuilder.
 func NewEventBuilder(name string) EventBuilder {
 	return &eventBuilder{
-		def: &EventDef{
-			Name: name,
-		},
+		name: name,
+		def:  &EventDef{},
 	}
 }
 
 // eventBuilder implements EventBuilder.
 type eventBuilder struct {
-	def *EventDef
+	name string
+	def  *EventDef
 }
 
 var _ EventBuilder = (*eventBuilder)(nil)
@@ -44,5 +44,5 @@ func (e *eventBuilder) Transition() TransitionBuilder {
 }
 
 func (e *eventBuilder) Build(event EventBuildable) {
-	event.SetEventDef(e.def)
+	event.SetEventDef(e.name, e.def)
 }

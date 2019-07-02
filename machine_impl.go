@@ -20,7 +20,7 @@ type machineImpl struct {
 // Machine.
 func NewMachine() Machine {
 	return &machineImpl{
-		def: &MachineDef{},
+		def:         NewMachineDef(),
 	}
 }
 
@@ -71,12 +71,10 @@ func (m *machineImpl) IsState(state string) bool {
 // Fire implements Machine.
 func (m *machineImpl) Fire(event string) (err error) {
 	m.mutex.Lock()
-	defer m.mutex.Unlock()
-
 	defer func() {
 		if err != nil {
 			args := make(map[reflect.Type]interface{})
-			args[reflect.TypeOf(new(Event))] = &simpleEvent{name: event}
+			args[reflect.TypeOf(new(Event))] = &eventImpl{name: event}
 			args[reflect.TypeOf(new(error))] = err
 
 			for _, callbackDef := range m.def.FailureCallbacks {
@@ -87,10 +85,13 @@ func (m *machineImpl) Fire(event string) (err error) {
 				}
 			}
 		}
+
+		m.mutex.Unlock()
 	}()
 
 	if m.IsState("") {
-		return ErrNotInitialized
+		err = ErrNotInitialized
+		return
 	}
 
 	// fmt.Printf("\n---\n🔁 %s\n", event)
@@ -100,15 +101,10 @@ func (m *machineImpl) Fire(event string) (err error) {
 
 	fromState := m.GetState()
 
-	var eventDef *EventDef
-	for _, def := range m.def.Events {
-		if def.Name == event {
-			eventDef = def
-			break
-		}
-	}
-	if eventDef == nil || eventDef.Name == "" {
-		return ErrNoSuchEvent
+	eventDef, ok := m.def.Events[event]
+	if !ok {
+		err = ErrNoSuchEvent
+		return
 	}
 
 	var transition Transition

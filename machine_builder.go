@@ -16,7 +16,7 @@ type MachineBuilder interface {
 	// if you're not using Machine.Build() to define the state machine.
 	Build(machine MachineBuildable)
 
-	SetEventDef(def *EventDef)
+	SetEventDef(event string, def *EventDef)
 
 	// States pre-defines the set of known states. This is optional because
 	// all known states will be identified from other definitions.
@@ -39,7 +39,7 @@ type MachineBuilder interface {
 // implements MachineBuilder.
 func NewMachineBuilder() MachineBuilder {
 	return &machineBuilder{
-		def: &MachineDef{},
+		def: NewMachineDef(),
 	}
 }
 
@@ -64,7 +64,7 @@ func (m *machineBuilder) Event(name string, eventBuilderFn func(eventBuilder Eve
 	eventBuilderFn(eventBuilder)
 	e := newEventImpl()
 	eventBuilder.Build(e)
-	m.def.AddEvent(e.def)
+	m.def.AddEvent(name, e.def)
 }
 
 func (m *machineBuilder) BeforeTransition() TransitionCallbackBuilder {
@@ -95,6 +95,6 @@ func (m *machineBuilder) Build(machine MachineBuildable) {
 	machine.SetMachineDef(m.def)
 }
 
-func (m *machineBuilder) SetEventDef(def *EventDef) {
-	m.def.AddEvent(def)
+func (m *machineBuilder) SetEventDef(event string, def *EventDef) {
+	m.def.AddEvent(event, def)
 }

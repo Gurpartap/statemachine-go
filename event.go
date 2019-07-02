@@ -8,5 +8,3 @@ type Event interface {
 
 var _ Event = (*eventImpl)(nil)
 var _ EventBuildable = (*eventImpl)(nil)
-
-var _ Event = (*simpleEvent)(nil)

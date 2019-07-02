@@ -3,13 +3,19 @@ package statemachine
 type MachineDef struct {
 	States       []string
 	InitialState string
-	Events       []*EventDef `json:",omitempty"`
+	Events       map[string]*EventDef   `json:",omitempty"`
 
 	BeforeCallbacks []*TransitionCallbackDef `json:",omitempty"`
 	AroundCallbacks []*TransitionCallbackDef `json:",omitempty"`
 	AfterCallbacks  []*TransitionCallbackDef `json:",omitempty"`
 
 	FailureCallbacks []*EventCallbackDef `json:",omitempty"`
+}
+
+func NewMachineDef() *MachineDef {
+	return &MachineDef{
+		Events:      map[string]*EventDef{},
+	}
 }
 
 func (def *MachineDef) SetStates(states ...string) {
@@ -20,8 +26,8 @@ func (def *MachineDef) SetInitialState(state string) {
 	def.InitialState = state
 }
 
-func (def *MachineDef) AddEvent(eventDef *EventDef) {
-	def.Events = append(def.Events, eventDef)
+func (def *MachineDef) AddEvent(event string, eventDef *EventDef) {
+	def.Events[event] = eventDef
 }
 
 func (def *MachineDef) AddBeforeCallback(CallbackDef *TransitionCallbackDef) {

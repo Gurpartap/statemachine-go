@@ -1,6 +1,7 @@
 package statemachine
 
 type eventImpl struct {
+	name string
 	def *EventDef
 }
 
@@ -10,20 +11,10 @@ func newEventImpl() *eventImpl {
 
 // Event implements Event.
 func (m *eventImpl) Event() string {
-	return m.def.Name
+	return m.name
 }
 
 // SetEventDef implements MachineBuildable.
-func (m *eventImpl) SetEventDef(def *EventDef) {
+func (m *eventImpl) SetEventDef(event string, def *EventDef) {
 	m.def = def
-}
-
-// simpleEvent is used in AfterFailure callbacks.
-type simpleEvent struct {
-	name string
-}
-
-// Event implements Event.
-func (s *simpleEvent) Event() string {
-	return s.name
 }
