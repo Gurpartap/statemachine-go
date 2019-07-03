@@ -1,10 +1,11 @@
 package statemachine
 
 type MachineDef struct {
-	States       []string               `hcl:"states"`
-	InitialState string                 `hcl:"initial_state"`
-	Events       map[string]*EventDef   `json:",omitempty" hcl:"event" hcle:"omitempty"`
-	Submachines  map[string]*MachineDef `json:",omitempty" hcl:"submachine" hcle:"omitempty"`
+	ID           string                   `json:"id,omitempty" hcl:"id" hcle:"omitempty"`
+	States       []string                 `hcl:"states"`
+	InitialState string                   `hcl:"initial_state"`
+	Events       map[string]*EventDef     `json:",omitempty" hcl:"event" hcle:"omitempty"`
+	Submachines  map[string][]*MachineDef `json:",omitempty" hcl:"submachine" hcle:"omitempty"`
 
 	BeforeCallbacks []*TransitionCallbackDef `json:",omitempty" hcl:"before_callbacks" hcle:"omitempty"`
 	AroundCallbacks []*TransitionCallbackDef `json:",omitempty" hcl:"around_callbacks" hcle:"omitempty"`
@@ -16,8 +17,12 @@ type MachineDef struct {
 func NewMachineDef() *MachineDef {
 	return &MachineDef{
 		Events:      map[string]*EventDef{},
-		Submachines: map[string]*MachineDef{},
+		Submachines: map[string][]*MachineDef{},
 	}
+}
+
+func (def *MachineDef) SetID(id string) {
+	def.ID = id
 }
 
 func (def *MachineDef) SetStates(states ...string) {
@@ -29,7 +34,7 @@ func (def *MachineDef) SetInitialState(state string) {
 }
 
 func (def *MachineDef) SetSubmachine(state string, submachine *MachineDef) {
-	def.Submachines[state] = submachine
+	def.Submachines[state] = append(def.Submachines[state], submachine)
 }
 
 func (def *MachineDef) AddEvent(event string, eventDef *EventDef) {

@@ -17,7 +17,7 @@ type machineImpl struct {
 	currentState  string
 
 	supermachine *machineImpl
-	submachines  map[string]*machineImpl
+	submachines  map[string][]*machineImpl
 
 	mutex     sync.RWMutex
 	hasExited bool
@@ -31,8 +31,8 @@ type machineImpl struct {
 func NewMachine() Machine {
 	ctxTimedEvents, stopTimedEvents := context.WithCancel(context.Background())
 	return &machineImpl{
-		submachines: map[string]*machineImpl{},
 		def:             NewMachineDef(),
+		submachines:     map[string][]*machineImpl{},
 		ctxTimedEvents:  ctxTimedEvents,
 		stopTimedEvents: stopTimedEvents,
 	}
@@ -58,7 +58,7 @@ func (m *machineImpl) SetMachineDef(def *MachineDef) {
 	defer m.mutex.Unlock()
 
 	// b, _ := json.MarshalIndent(def, "", "  ")
-	// b, _ := hclencoder.Encode(def)
+	// // b, _ := hclencoder.Encode(def)
 	// fmt.Printf("machine def = %s\n", string(b))
 
 	m.def = def
@@ -217,11 +217,20 @@ func (m *machineImpl) matchTransition(transitions []*TransitionDef, fromState st
 	return
 }
 
+// TODO: get submachine by its id.
 func (m *machineImpl) Submachine(state string) (Machine, error) {
+// func (m *machineImpl) Submachine(state, id string) (Machine, error) {
 	if m.currentState != state {
 		return nil, ErrStateNotCurrent
 	}
-	return m.submachines[state], nil
+
+	// for _, submachine := range m.submachines[state] {
+	// 	if submachine.def.ID == id {
+	// 		return submachine, nil
+	// 	}
+	// }
+
+	return m.submachines[state][0], nil
 }
 
 func (m *machineImpl) setCurrentState(state string) {
@@ -233,13 +242,17 @@ func (m *machineImpl) setCurrentState(state string) {
 		}
 	}
 
-	for s, submachineDef := range m.def.Submachines {
+	for s, submachineDefs := range m.def.Submachines {
 		if s == state {
-			m.submachines[s] = &machineImpl{
-				supermachine: m,
-				submachines:  map[string]*machineImpl{},
+			m.submachines[state] = []*machineImpl{}
+			for _, submachineDef := range submachineDefs {
+				submachine := &machineImpl{
+					supermachine: m,
+					submachines:  map[string][]*machineImpl{},
+				}
+				submachine.SetMachineDef(submachineDef)
+				m.submachines[state] = append(m.submachines[state], submachine)
 			}
-			m.submachines[s].SetMachineDef(submachineDef)
 
 			m.previousState = m.currentState
 			m.currentState = state

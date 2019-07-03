@@ -18,6 +18,8 @@ type MachineBuilder interface {
 
 	SetEventDef(event string, def *EventDef)
 
+	ID(id string)
+
 	// States pre-defines the set of known states. This is optional because
 	// all known states will be identified from other definitions.
 	States(states ...string)
@@ -51,6 +53,10 @@ type machineBuilder struct {
 }
 
 var _ MachineBuilder = (*machineBuilder)(nil)
+
+func (m *machineBuilder) ID(id string) {
+	m.def.SetID(id)
+}
 
 func (m *machineBuilder) States(states ...string) {
 	m.def.SetStates(states...)

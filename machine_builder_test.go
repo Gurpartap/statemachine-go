@@ -51,12 +51,14 @@ func ExampleMachineDef() {
 	machineDef := &statemachine.MachineDef{
 		States:       processStates,
 		InitialState: "unmonitored",
-		Submachines: map[string]*statemachine.MachineDef{
+		Submachines: map[string][]*statemachine.MachineDef{
 			"running": {
-				InitialState: "pending",
-				AfterCallbacks: []*statemachine.TransitionCallbackDef{
-					{To: []string{"success"}, ExitToState: "stopped"},
-					{To: []string{"failure"}, ExitToState: "restarting"},
+				{
+					InitialState: "pending",
+					AfterCallbacks: []*statemachine.TransitionCallbackDef{
+						{To: []string{"success"}, ExitToState: "stopped"},
+						{To: []string{"failure"}, ExitToState: "restarting"},
+					},
 				},
 			},
 		},

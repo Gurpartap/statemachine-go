@@ -13,6 +13,9 @@ type Machine interface {
 	Submachine(state string) (Machine, error)
 
 	Fire(event string) error
+
+	// TODO: ctx.ForceShutdownSubmachines(true), etc.
+	// FireContext(, event string) error
 }
 
 var _ Machine = (*machineImpl)(nil)
