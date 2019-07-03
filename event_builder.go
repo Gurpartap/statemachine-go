@@ -13,6 +13,8 @@ type EventBuildable interface {
 type EventBuilder interface {
 	Timed() TimedEventBuilder
 
+	Choice(condition ChoiceCondition) ChoiceBuilder
+
 	// Transition begins the transition builder, accepting states and guards.
 	Transition() TransitionBuilder
 
@@ -41,6 +43,13 @@ var _ EventBuilder = (*eventBuilder)(nil)
 
 func (e *eventBuilder) Timed() TimedEventBuilder {
 	return NewTimedEventBuilder(e.def)
+}
+
+func (e *eventBuilder) Choice(condition ChoiceCondition) ChoiceBuilder {
+	choiceDef := &ChoiceDef{}
+	choiceDef.SetCondition(condition)
+	e.def.SetChoice(choiceDef)
+	return newChoiceBuilder(choiceDef)
 }
 
 func (e *eventBuilder) Transition() TransitionBuilder {

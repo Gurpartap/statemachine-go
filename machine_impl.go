@@ -140,16 +140,63 @@ func (m *machineImpl) Fire(event string) (err error) {
 
 	fromState := m.GetState()
 
+	var transition Transition
+	transition, err = m.findTransition(event, fromState)
+	if err != nil {
+		return
+	}
+
+	err = m.applyTransition(transition)
+	return
+}
+
+func (m *machineImpl) findTransition(event string, fromState string) (transition Transition, err error) {
 	eventDef, ok := m.def.Events[event]
 	if !ok {
 		err = ErrNoSuchEvent
 		return
 	}
 
-	var transition Transition
-	err = ErrNoMatchingTransition
+	transition, err = m.matchTransition(eventDef.Transitions, fromState)
+	if err == nil || eventDef.Choice == nil {
+		return
+	}
 
-	for _, transitionDef := range eventDef.Transitions {
+	transition, err = m.findChoiceTransition(event, eventDef, fromState)
+	return
+}
+
+func (m *machineImpl) findChoiceTransition(event string, eventDef *EventDef, fromState string) (transition Transition, err error) {
+	args := make(map[reflect.Type]interface{})
+	args[reflect.TypeOf(new(Machine))] = m
+	args[reflect.TypeOf(new(Event))] = &eventImpl{name: event}
+
+	if eventDef.Choice.UnlessGuard != nil {
+		if ok := execGuard(eventDef.Choice.UnlessGuard.Guard, args); ok {
+			err = ErrTransitionNotAllowed
+			return
+		}
+	}
+
+	if execChoice(eventDef.Choice.Condition.Condition, args) {
+		if eventDef.Choice.OnTrue.Choice != nil {
+			transition, err = m.findChoiceTransition(event, eventDef.Choice.OnTrue, fromState)
+			return
+		}
+		transition, err = m.matchTransition(eventDef.Choice.OnTrue.Transitions, fromState)
+		return
+	}
+
+	if eventDef.Choice.OnFalse.Choice != nil {
+		transition, err = m.findChoiceTransition(event, eventDef.Choice.OnFalse, fromState)
+		return
+	}
+	transition, err = m.matchTransition(eventDef.Choice.OnFalse.Transitions, fromState)
+	return
+}
+
+func (m *machineImpl) matchTransition(transitions []*TransitionDef, fromState string) (transition Transition, err error) {
+	for _, transitionDef := range transitions {
 		matches := transitionDef.Matches(fromState)
 		if !matches {
 			err = ErrNoMatchingTransition
@@ -163,14 +210,10 @@ func (m *machineImpl) Fire(event string) (err error) {
 		transition = newTransitionImpl(fromState, transitionDef.To)
 		err = nil
 
-		break
-	}
-	if err != nil {
 		return
 	}
 
-	err = m.applyTransition(transition)
-
+	err = ErrNoMatchingTransition
 	return
 }
 

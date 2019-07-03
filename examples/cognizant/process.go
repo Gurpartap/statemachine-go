@@ -15,6 +15,7 @@ type Process struct {
 
 	IsAutoStartOn    bool
 	IsProcessRunning bool
+	SkipTicks        bool
 }
 
 func NewProcess() *Process {
@@ -47,23 +48,42 @@ func NewProcess() *Process {
 		})
 
 		m.Event("tick", func(e statemachine.EventBuilder) {
-			e.Transition().From("starting").To("running").If(&process.IsProcessRunning)
-			e.Transition().From("starting").To("stopped").Unless(&process.IsProcessRunning)
-
-			// The process failed to die after entering the stopping state.
-			// Change the state to reflect reality.
-			e.Transition().From("running").To("stopped").Unless(&process.IsProcessRunning)
-
-			e.Transition().From("stopping").To("running").If(&process.IsProcessRunning)
-			e.Transition().From("stopping").To("stopped").Unless(&process.IsProcessRunning)
-
-			e.Transition().From("stopped").To("running").If(&process.IsProcessRunning)
-			e.Transition().From("stopped").To("starting").If(&process.IsAutoStartOn).AndUnless(&process.IsProcessRunning)
 			e.Timed().Every(1 * time.Second)
+			// e.SkipUntil(process.SkipTick)
 
+			e.Choice(&process.IsProcessRunning).
+				Unless(process.SkipTick).
+				OnTrue(func(e statemachine.EventBuilder) {
+					e.Transition().From("starting").To("running")
+					e.Transition().From("stopping").To("running")
+					e.Transition().From("stopped").To("running")
+					e.Transition().From("restarting").To("running")
+				}).
+				OnFalse(func(e statemachine.EventBuilder) {
+					e.Transition().From("starting").To("stopped")
+					// The process failed to die after entering the stopping state.
+					// Change the state to reflect reality.
+					e.Transition().From("running").To("stopped")
+					e.Transition().From("stopping").To("stopped")
+					e.Transition().From("stopped").To("starting").If(&process.IsAutoStartOn)
+					e.Transition().From("restarting").To("stopped")
+				})
 
-			e.Transition().From("restarting").To("running").If(&process.IsProcessRunning)
-			e.Transition().From("restarting").To("stopped").Unless(&process.IsProcessRunning)
+			// e.Transition().From("starting").To("running").If(&process.IsProcessRunning)
+			// e.Transition().From("starting").To("stopped").Unless(&process.IsProcessRunning)
+			//
+			// // The process failed to die after entering the stopping state.
+			// // Change the state to reflect reality.
+			// e.Transition().From("running").To("stopped").Unless(&process.IsProcessRunning)
+			//
+			// e.Transition().From("stopping").To("running").If(&process.IsProcessRunning)
+			// e.Transition().From("stopping").To("stopped").Unless(&process.IsProcessRunning)
+			//
+			// e.Transition().From("stopped").To("running").If(&process.IsProcessRunning)
+			// e.Transition().From("stopped").To("starting").If(&process.IsAutoStartOn).AndUnless(&process.IsProcessRunning)
+			//
+			// e.Transition().From("restarting").To("running").If(&process.IsProcessRunning)
+			// e.Transition().From("restarting").To("stopped").Unless(&process.IsProcessRunning)
 		})
 
 		m.BeforeTransition().FromAny().To("starting").Do(func() { process.IsAutoStartOn = true })
@@ -154,6 +174,10 @@ func (process *Process) GetIsAutoStartOn() bool {
 	return process.IsAutoStartOn
 }
 
+func (process *Process) SkipTick() bool {
+	return false
+}
+
 func (process *Process) Start() {
 	fmt.Println("Start()")
 	process.IsProcessRunning = true
@@ -203,10 +227,14 @@ func main() {
 	// 	}
 	// }()
 
-	process.Fire("monitor")
+	_ = process.Fire("monitor")
 
 	time.AfterFunc(2*time.Second, func() {
-		process.Fire("start")
+		_ = process.Fire("start")
+
+		time.AfterFunc(2*time.Second, func() {
+			process.Stop()
+		})
 	})
 
 	done := make(chan os.Signal, 1)
