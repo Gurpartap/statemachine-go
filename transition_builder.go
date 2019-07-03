@@ -36,15 +36,15 @@ type TransitionExceptFromBuilder interface {
 // TransitionExceptFromBuilder) and provides the ability to define the guard
 // condition funcs for the transition.
 type TransitionToBuilder interface {
-	If(guard TransitionGuard) TransitionAndGuardBuilder
-	Unless(guard TransitionGuard) TransitionAndGuardBuilder
+	If(guards ...TransitionGuard) TransitionAndGuardBuilder
+	Unless(guards ...TransitionGuard) TransitionAndGuardBuilder
 }
 
 // TransitionAndGuardBuilder inherits from TransitionToBuilder and provides
 // the ability to define additional guard condition funcs for the transition.
 type TransitionAndGuardBuilder interface {
-	AndIf(guard TransitionGuard) TransitionAndGuardBuilder
-	AndUnless(guard TransitionGuard) TransitionAndGuardBuilder
+	AndIf(guards ...TransitionGuard) TransitionAndGuardBuilder
+	AndUnless(guards ...TransitionGuard) TransitionAndGuardBuilder
 }
 
 // newTransitionBuilder returns a zero-valued instance of
@@ -137,13 +137,13 @@ type transitionToBuilder struct {
 
 var _ TransitionToBuilder = (*transitionToBuilder)(nil)
 
-func (builder *transitionToBuilder) If(guard TransitionGuard) TransitionAndGuardBuilder {
-	builder.transitionDef.AddIfGuard(guard)
+func (builder *transitionToBuilder) If(guard ...TransitionGuard) TransitionAndGuardBuilder {
+	builder.transitionDef.AddIfGuard(guard...)
 	return newTransitionAndGuardBuilder(builder.transitionDef)
 }
 
-func (builder *transitionToBuilder) Unless(guard TransitionGuard) TransitionAndGuardBuilder {
-	builder.transitionDef.AddUnlessGuard(guard)
+func (builder *transitionToBuilder) Unless(guard ...TransitionGuard) TransitionAndGuardBuilder {
+	builder.transitionDef.AddUnlessGuard(guard...)
 	return newTransitionAndGuardBuilder(builder.transitionDef)
 }
 
@@ -162,12 +162,12 @@ type transitionAndGuardBuilder struct {
 
 var _ TransitionAndGuardBuilder = (*transitionAndGuardBuilder)(nil)
 
-func (builder *transitionAndGuardBuilder) AndIf(guard TransitionGuard) TransitionAndGuardBuilder {
-	builder.transitionDef.AddIfGuard(guard)
+func (builder *transitionAndGuardBuilder) AndIf(guard ...TransitionGuard) TransitionAndGuardBuilder {
+	builder.transitionDef.AddIfGuard(guard...)
 	return builder
 }
 
-func (builder *transitionAndGuardBuilder) AndUnless(guard TransitionGuard) TransitionAndGuardBuilder {
-	builder.transitionDef.AddUnlessGuard(guard)
+func (builder *transitionAndGuardBuilder) AndUnless(guard ...TransitionGuard) TransitionAndGuardBuilder {
+	builder.transitionDef.AddUnlessGuard(guard...)
 	return builder
 }

@@ -55,8 +55,8 @@ func ExampleMachineDef() {
 			"running": {
 				InitialState: "pending",
 				AfterCallbacks: []*statemachine.TransitionCallbackDef{
-					{To: []string{"success"}, ExitInto: "stopped"},
-					{To: []string{"failure"}, ExitInto: "restarting"},
+					{To: []string{"success"}, ExitToState: "stopped"},
+					{To: []string{"failure"}, ExitToState: "restarting"},
 				},
 			},
 		},
@@ -191,19 +191,19 @@ func ExampleMachineBuilder_BeforeTransition() {
 
 		// define events here...
 
-		m.BeforeTransition().FromAny().To("starting").Do(func() { p.IsAutoStartOn = true })
-		m.AfterTransition().FromAny().To("starting").Do(func() { p.Start() })
+		m.BeforeTransition().To("starting").Do(func() { p.IsAutoStartOn = true })
+		m.AfterTransition().To("starting").Do(func() { p.Start() })
 
-		m.BeforeTransition().FromAny().To("stopping").Do(func() { p.IsAutoStartOn = false })
-		m.AfterTransition().FromAny().To("stopping").Do(func() { p.Stop() })
+		m.BeforeTransition().To("stopping").Do(func() { p.IsAutoStartOn = false })
+		m.AfterTransition().To("stopping").Do(func() { p.Stop() })
 
-		m.BeforeTransition().FromAny().To("restarting").Do(func() { p.IsAutoStartOn = true })
-		m.AfterTransition().FromAny().To("restarting").Do(func() { p.Restart() })
+		m.BeforeTransition().To("restarting").Do(func() { p.IsAutoStartOn = true })
+		m.AfterTransition().To("restarting").Do(func() { p.Restart() })
 
-		m.BeforeTransition().FromAny().To("unmonitored").Do(func() { p.IsAutoStartOn = false })
+		m.BeforeTransition().To("unmonitored").Do(func() { p.IsAutoStartOn = false })
 
-		m.BeforeTransition().FromAny().ToAny().Do(p.NotifyTriggers)
-		m.AfterTransition().FromAny().ToAny().Do(p.RecordTransition)
+		m.BeforeTransition().ToAny().Do(p.NotifyTriggers)
+		m.AfterTransition().ToAny().Do(p.RecordTransition)
 		m.AfterFailure().OnAnyEvent().Do(p.LogFailure)
 	})
 

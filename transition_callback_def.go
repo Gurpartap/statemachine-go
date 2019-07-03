@@ -11,12 +11,12 @@ type TransitionCallbackFuncDef struct {
 }
 
 type TransitionCallbackDef struct {
-	From       []string                     `json:",omitempty" hcl:"from" hcle:"omitempty"`
-	ExceptFrom []string                     `json:",omitempty" hcl:"except_from" hcle:"omitempty"`
-	To         []string                     `json:",omitempty" hcl:"to" hcle:"omitempty"`
-	ExceptTo   []string                     `json:",omitempty" hcl:"except_to" hcle:"omitempty"`
-	Do         []*TransitionCallbackFuncDef `json:",omitempty" hcl:"do" hcle:"omitempty"`
-	ExitInto   string                       `json:",omitempty" hcl:"exit_into" hcle:"omitempty"`
+	From        []string                     `json:",omitempty" hcl:"from" hcle:"omitempty"`
+	ExceptFrom  []string                     `json:",omitempty" hcl:"except_from" hcle:"omitempty"`
+	To          []string                     `json:",omitempty" hcl:"to" hcle:"omitempty"`
+	ExceptTo    []string                     `json:",omitempty" hcl:"except_to" hcle:"omitempty"`
+	Do          []*TransitionCallbackFuncDef `json:",omitempty" hcl:"do" hcle:"omitempty"`
+	ExitToState string                       `json:",omitempty" hcl:"exit_to_state" hcle:"omitempty"`
 
 	validateFor string `json:"-" hcle:"omit"`
 }
@@ -90,13 +90,15 @@ func (s *TransitionCallbackDef) SetToAnyExcept(exceptStates ...string) {
 	}
 }
 
-func (s *TransitionCallbackDef) SetExitInto(supermachineState string) {
-	s.ExitInto = supermachineState
+func (s *TransitionCallbackDef) SetExitToState(supermachineState string) {
+	s.ExitToState = supermachineState
 }
 
-func (s *TransitionCallbackDef) AddCallbackFunc(callbackFunc TransitionCallbackFunc) {
-	s.assertCallbackKind(callbackFunc)
-	s.Do = append(s.Do, &TransitionCallbackFuncDef{Func: callbackFunc})
+func (s *TransitionCallbackDef) AddCallbackFunc(callbackFuncs ...TransitionCallbackFunc) {
+	for _, callbackFunc := range callbackFuncs {
+		s.assertCallbackKind(callbackFunc)
+		s.Do = append(s.Do, &TransitionCallbackFuncDef{Func: callbackFunc})
+	}
 }
 
 func (s *TransitionCallbackDef) assertCallbackKind(callbackFunc TransitionCallbackFunc) {

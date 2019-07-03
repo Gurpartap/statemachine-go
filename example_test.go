@@ -84,19 +84,19 @@ func Example_systemProcess() {
 			eventBuilder.Transition().FromAny().To("unmonitored")
 		})
 
-		machineBuilder.BeforeTransition().FromAny().To("starting").Do(func() { process.IsAutoStartOn = true })
-		machineBuilder.AfterTransition().FromAny().To("starting").Do(func() { process.Start() })
+		machineBuilder.BeforeTransition().To("starting").Do(func() { process.IsAutoStartOn = true })
+		machineBuilder.AfterTransition().To("starting").Do(func() { process.Start() })
 
-		machineBuilder.BeforeTransition().FromAny().To("stopping").Do(func() { process.IsAutoStartOn = false })
-		machineBuilder.AfterTransition().FromAny().To("stopping").Do(func() { process.Stop() })
+		machineBuilder.BeforeTransition().To("stopping").Do(func() { process.IsAutoStartOn = false })
+		machineBuilder.AfterTransition().To("stopping").Do(func() { process.Stop() })
 
-		machineBuilder.BeforeTransition().FromAny().To("restarting").Do(func() { process.IsAutoStartOn = true })
-		machineBuilder.AfterTransition().FromAny().To("restarting").Do(func() { process.Restart() })
+		machineBuilder.BeforeTransition().To("restarting").Do(func() { process.IsAutoStartOn = true })
+		machineBuilder.AfterTransition().To("restarting").Do(func() { process.Restart() })
 
-		machineBuilder.BeforeTransition().FromAny().To("unmonitored").Do(func() { process.IsAutoStartOn = false })
+		machineBuilder.BeforeTransition().To("unmonitored").Do(func() { process.IsAutoStartOn = false })
 
-		machineBuilder.BeforeTransition().FromAny().ToAny().Do(process.NotifyTriggers)
-		machineBuilder.AfterTransition().FromAny().ToAny().Do(process.RecordTransition)
+		machineBuilder.BeforeTransition().ToAny().Do(process.NotifyTriggers)
+		machineBuilder.AfterTransition().ToAny().Do(process.RecordTransition)
 
 		machineBuilder.AfterFailure().OnAnyEvent().Do(process.LogFailure)
 	})

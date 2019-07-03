@@ -281,9 +281,9 @@ func (m *machineImpl) applyTransition(transition Transition) error {
 		for _, callback := range callbackDef.Do {
 			m.exec(callback.Func, args)
 		}
-		if callbackDef.ExitInto != "" && m.supermachine != nil {
+		if callbackDef.ExitToState != "" && m.supermachine != nil {
 			if err := m.supermachine.applyTransition(
-				newTransitionImpl(m.supermachine.currentState, callbackDef.ExitInto),
+				newTransitionImpl(m.supermachine.currentState, callbackDef.ExitToState),
 			); err != nil {
 				return fmt.Errorf("could not exit submachine: %s", err)
 			}

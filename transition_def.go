@@ -38,50 +38,50 @@ func execGuard(guard TransitionGuard, args map[reflect.Type]interface{}) bool {
 	}
 }
 
-func (s *TransitionDef) IsAllowed(fromState string, machine Machine) bool {
-	if len(s.IfGuards) != 0 || len(s.UnlessGuards) != 0 {
+func (def *TransitionDef) IsAllowed(fromState string, machine Machine) bool {
+	if len(def.IfGuards) != 0 || len(def.UnlessGuards) != 0 {
 		args := make(map[reflect.Type]interface{})
 		args[reflect.TypeOf(new(Machine))] = machine
 		args[reflect.TypeOf(new(Transition))] = newTransitionImpl(
 			fromState,
-			s.To,
+			def.To,
 		)
 
-		for _, guard := range s.IfGuards {
+		for _, guard := range def.IfGuards {
 			// if !ok { dont allow }
 			if ok := execGuard(guard.Guard, args); !ok {
-				// fmt.Printf("❌1 from: %s to: %s\n", fromState, s.To.State())
+				// fmt.Printf("❌1 from: %def to: %def\n", fromState, def.To.State())
 				return false
 			}
 		}
 
-		for _, guard := range s.UnlessGuards {
+		for _, guard := range def.UnlessGuards {
 			// if ok { dont allow }
 			if ok := execGuard(guard.Guard, args); ok {
-				// fmt.Printf("❌2 from: %s to: %s\n", fromState, s.To.State())
+				// fmt.Printf("❌2 from: %def to: %def\n", fromState, def.To.State())
 				return false
 			}
 		}
 	}
 
-	// fmt.Printf("✅  transitioning from %s to %s\n", fromState, s.To.State())
+	// fmt.Printf("✅  transitioning from %def to %def\n", fromState, def.To.State())
 
 	return true
 }
 
-func (s *TransitionDef) Matches(matchFrom string) bool {
-	for _, exceptState := range s.ExceptFrom {
+func (def *TransitionDef) Matches(matchFrom string) bool {
+	for _, exceptState := range def.ExceptFrom {
 		if matchFrom == exceptState {
 			return false
 		}
 	}
 
 	// match any
-	if len(s.From) == 0 {
+	if len(def.From) == 0 {
 		return true
 	}
 
-	for _, state := range s.From {
+	for _, state := range def.From {
 		if matchFrom == state {
 			return true
 		}
@@ -90,30 +90,34 @@ func (s *TransitionDef) Matches(matchFrom string) bool {
 	return false
 }
 
-func (s *TransitionDef) SetFrom(states ...string) {
+func (def *TransitionDef) SetFrom(states ...string) {
 	for _, state := range states {
-		s.From = append(s.From, state)
+		def.From = append(def.From, state)
 	}
 }
 
-func (s *TransitionDef) SetFromAnyExcept(exceptStates ...string) {
+func (def *TransitionDef) SetFromAnyExcept(exceptStates ...string) {
 	for _, exceptState := range exceptStates {
-		s.ExceptFrom = append(s.ExceptFrom, exceptState)
+		def.ExceptFrom = append(def.ExceptFrom, exceptState)
 	}
 }
 
-func (s *TransitionDef) SetTo(state string) {
-	s.To = state
+func (def *TransitionDef) SetTo(state string) {
+	def.To = state
 }
 
-func (s *TransitionDef) AddIfGuard(guard TransitionGuard) {
-	assertGuardKind(guard)
-	s.IfGuards = append(s.IfGuards, &TransitionGuardDef{Guard: guard})
+func (def *TransitionDef) AddIfGuard(guards ...TransitionGuard) {
+	for _, guard := range guards {
+		assertGuardKind(guard)
+		def.IfGuards = append(def.IfGuards, &TransitionGuardDef{Guard: guard})
+	}
 }
 
-func (s *TransitionDef) AddUnlessGuard(guard TransitionGuard) {
-	assertGuardKind(guard)
-	s.UnlessGuards = append(s.UnlessGuards, &TransitionGuardDef{Guard: guard})
+func (def *TransitionDef) AddUnlessGuard(guards ...TransitionGuard) {
+	for _, guard := range guards {
+		assertGuardKind(guard)
+		def.UnlessGuards = append(def.UnlessGuards, &TransitionGuardDef{Guard: guard})
+	}
 }
 
 func assertGuardKind(guard TransitionGuard) {
