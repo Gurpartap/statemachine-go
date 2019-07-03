@@ -2,6 +2,7 @@ package statemachine
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"reflect"
 	"sync"
@@ -62,7 +63,9 @@ func (m *machineImpl) SetMachineDef(def *MachineDef) {
 	// fmt.Printf("machine def = %s\n", string(b))
 
 	m.def = def
-	m.setCurrentState(m.def.InitialState)
+	if err := m.setCurrentState(m.def.InitialState); err != nil {
+		panic(err)
+	}
 	m.restartTimedEventsLoops()
 }
 
@@ -86,17 +89,34 @@ func (m *machineImpl) restartTimedEventsLoops() {
 	}
 }
 
+// GetStateMap implements Machine.
+func (m *machineImpl) GetStateMap() StateMap {
+	substate := StateMap{}
+	if submachines, ok := m.submachines[m.currentState]; ok {
+		for _, submachine := range submachines {
+			if _, ok := submachine.submachines[submachine.currentState]; ok {
+				substate[submachine.def.ID] = submachine.GetStateMap()
+			} else {
+				substate[submachine.def.ID] = submachine.currentState
+			}
+		}
+	}
+	return StateMap{
+		m.currentState: substate,
+	}
+}
+
 // GetState implements Machine.
 func (m *machineImpl) GetState() string {
 	return m.currentState
 }
 
 // SetCurrentState implements Machine.
-func (m *machineImpl) SetCurrentState(state string) {
+func (m *machineImpl) SetCurrentState(state interface{}) error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
-	m.setCurrentState(state)
+	return m.setCurrentState(state)
 }
 
 // IsState implements Machine.
@@ -142,7 +162,7 @@ func (m *machineImpl) Fire(event string) (err error) {
 	}()
 
 	if m.IsState("") {
-		err = ErrNotInitialized
+		err = errors.New("state machine not initialized")
 		return
 	}
 
@@ -164,7 +184,7 @@ func (m *machineImpl) Fire(event string) (err error) {
 func (m *machineImpl) findTransition(event string, fromState string) (transition Transition, err error) {
 	eventDef, ok := m.def.Events[event]
 	if !ok {
-		err = ErrNoSuchEvent
+		err = errors.New("no such event")
 		return
 	}
 
@@ -228,48 +248,105 @@ func (m *machineImpl) matchTransition(transitions []*TransitionDef, fromState st
 	return
 }
 
-// TODO: get submachine by its id.
-func (m *machineImpl) Submachine(state string) (Machine, error) {
-// func (m *machineImpl) Submachine(state, id string) (Machine, error) {
-	if m.currentState != state {
-		return nil, ErrStateNotCurrent
+func (m *machineImpl) Submachine(idPath ...string) (Machine, error) {
+	for _, submachine := range m.submachines[m.currentState] {
+		if submachine.def.ID == idPath[0] {
+			if len(idPath) > 1 {
+				return submachine.Submachine(idPath[1:]...)
+			}
+			return submachine, nil
+		}
 	}
 
-	// for _, submachine := range m.submachines[state] {
-	// 	if submachine.def.ID == id {
-	// 		return submachine, nil
-	// 	}
-	// }
-
-	return m.submachines[state][0], nil
+	return nil, errors.New("submachine not active")
 }
 
-func (m *machineImpl) setCurrentState(state string) {
-	for _, s := range m.def.States {
-		if s == state {
-			m.previousState = m.currentState
-			m.currentState = state
-			return
-		}
-	}
+func (m *machineImpl) setCurrentStateMap(state StateMap) error {
+	for rootState, subStates := range state {
+		switch subStates.(type) {
+		case nil:
+			// fmt.Printf("setting state to '%s'\n", rootState)
+			return m.setCurrentState(rootState)
 
-	for s, submachineDefs := range m.def.Submachines {
-		if s == state {
-			m.submachines[state] = []*machineImpl{}
-			for _, submachineDef := range submachineDefs {
-				submachine := &machineImpl{
-					supermachine: m,
-					submachines:  map[string][]*machineImpl{},
-				}
-				submachine.SetMachineDef(submachineDef)
-				m.submachines[state] = append(m.submachines[state], submachine)
+		case StateMap:
+			// fmt.Printf("setting state to '%s'\n", rootState)
+			if err := m.setCurrentState(rootState); err != nil {
+				return err
 			}
 
-			m.previousState = m.currentState
-			m.currentState = state
-			return
+			for id, state := range subStates.(StateMap) {
+				for _, submachine := range m.submachines[rootState] {
+					if submachine.def.ID == id {
+						switch state.(type) {
+						case StateMap:
+							// fmt.Printf("nesting into submachine '%s'\n", id)
+							if err := submachine.setCurrentStateMap(state.(StateMap)); err != nil {
+								return err
+							}
+						case string:
+							// fmt.Printf("setting submachine '%s' to '%s'\n", id, state)
+							if err := submachine.SetCurrentState(state); err != nil {
+								return err
+							}
+						default:
+							return ErrStateTypeNotSupported
+						}
+					}
+				}
+			}
+
+		default:
+			if err := m.setCurrentState(rootState); err != nil {
+				return err
+			}
+
+			return ErrStateTypeNotSupported
+		}
+
+		// there is only one kv in any given StateMap
+		break
+	}
+
+	return nil
+}
+
+func (m *machineImpl) setCurrentState(state interface{}) error {
+	if state, ok := state.(StateMap); ok {
+		if err := m.setCurrentStateMap(state); err != nil {
+			return err
+		}
+		return nil
+	}
+
+	if state, ok := state.(string); ok {
+		for _, s := range m.def.States {
+			if s == state {
+				m.previousState = m.currentState
+				m.currentState = state
+				return nil
+			}
+		}
+
+		for s, submachineDefs := range m.def.Submachines {
+			if s == state {
+				m.submachines[state] = []*machineImpl{}
+				for _, submachineDef := range submachineDefs {
+					submachine := &machineImpl{
+						supermachine: m,
+						submachines:  map[string][]*machineImpl{},
+					}
+					submachine.SetMachineDef(submachineDef)
+					m.submachines[state] = append(m.submachines[state], submachine)
+				}
+
+				m.previousState = m.currentState
+				m.currentState = state
+				return nil
+			}
 		}
 	}
+
+	return ErrStateTypeNotSupported
 }
 
 func (m *machineImpl) applyTransition(transition Transition) error {

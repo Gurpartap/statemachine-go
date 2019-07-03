@@ -6,13 +6,17 @@ type Machine interface {
 	Build(machineBuilderFn func(machineBuilder MachineBuilder))
 	SetMachineDef(def *MachineDef)
 
+	GetStateMap() StateMap
+
 	GetState() string
-	SetCurrentState(state string)
+	SetCurrentState(state interface{}) error
 	IsState(state string) bool
 
-	Submachine(state string) (Machine, error)
+	Submachine(idPath ...string) (Machine, error)
 
 	Fire(event string) error
+
+	Send(signal Message) error
 
 	// TODO: ctx.ForceShutdownSubmachines(true), etc.
 	// FireContext(, event string) error
@@ -20,3 +24,5 @@ type Machine interface {
 
 var _ Machine = (*machineImpl)(nil)
 var _ MachineBuildable = (*machineImpl)(nil)
+
+type StateMap map[string]interface{}

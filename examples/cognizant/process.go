@@ -139,15 +139,21 @@ func main() {
 
 	_ = process.Fire("monitor")
 
-	time.AfterFunc(2*time.Second, func() {
-		_ = process.Fire("start")
 	// _ = process.Send(statemachine.TriggerEvent{
 	// 	Event: "monitor",
 	// })
 
-		time.AfterFunc(2*time.Second, func() {
-			process.Stop()
-		})
+	// _ = process.Send(statemachine.OverrideState{
+	// 	State: statemachine.StateMap{
+	// 		"stopped": nil,
+	// 	},
+	// })
+
+	stateJSON, _ := json.MarshalIndent(process.GetStateMap(), "", "  ")
+	fmt.Printf("%s\n", stateJSON)
+
+	time.AfterFunc(2*time.Second, func() {
+		process.Stop()
 	})
 
 	done := make(chan os.Signal, 1)
