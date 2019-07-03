@@ -29,7 +29,7 @@ type MachineBuilder interface {
 	Submachine(state string, submachineBuilderFn func(submachineBuilder MachineBuilder))
 
 	// Event provides the ability to define possible transitions for an event.
-	Event(name string, eventBuilderFn func(eventBuilder EventBuilder))
+	Event(name string, eventBuilderFn ...func(eventBuilder EventBuilder)) EventBuilder
 
 	BeforeTransition() TransitionCallbackBuilder
 	AroundTransition() TransitionCallbackBuilder
@@ -66,13 +66,16 @@ func (m *machineBuilder) Submachine(state string, submachineBuilderFn func(subma
 	m.def.SetSubmachine(state, submachineBuilder.def)
 }
 
-func (m *machineBuilder) Event(name string, eventBuilderFn func(eventBuilder EventBuilder)) {
+func (m *machineBuilder) Event(name string, eventBuilderFuncs ...func(eventBuilder EventBuilder)) EventBuilder {
 	// TODO: Restrict public use of .Build(...) on this instance of eventBuilder.
 	eventBuilder := NewEventBuilder(name)
-	eventBuilderFn(eventBuilder)
+	for _, eventBuilderFunc := range eventBuilderFuncs {
+		eventBuilderFunc(eventBuilder)
+	}
 	e := newEventImpl()
 	eventBuilder.Build(e)
 	m.def.AddEvent(name, e.def)
+	return eventBuilder
 }
 
 func (m *machineBuilder) BeforeTransition() TransitionCallbackBuilder {

@@ -1,5 +1,9 @@
 package statemachine
 
+import (
+	"time"
+)
+
 // EventBuildable implementation is able to consume the result of building
 // features from EventBuilder. EventBuildable is oblivious to Event or
 // it's implementation.
@@ -11,7 +15,7 @@ type EventBuildable interface {
 // transitions and their guards. EventBuilder is oblivious to Event or it's
 // implementation.
 type EventBuilder interface {
-	Timed() TimedEventBuilder
+	TimedEvery(duration time.Duration) EventBuilder
 
 	Choice(condition ChoiceCondition) ChoiceBuilder
 
@@ -41,8 +45,9 @@ type eventBuilder struct {
 
 var _ EventBuilder = (*eventBuilder)(nil)
 
-func (e *eventBuilder) Timed() TimedEventBuilder {
-	return NewTimedEventBuilder(e.def)
+func (e *eventBuilder) TimedEvery(duration time.Duration) EventBuilder {
+	e.def.SetEvery(duration)
+	return e
 }
 
 func (e *eventBuilder) Choice(condition ChoiceCondition) ChoiceBuilder {
