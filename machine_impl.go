@@ -1,9 +1,11 @@
 package statemachine
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"sync"
+	"time"
 
 	"github.com/Gurpartap/statemachine-go/internal/dynafunc"
 )
@@ -19,14 +21,20 @@ type machineImpl struct {
 
 	mutex     sync.RWMutex
 	hasExited bool
+
+	ctxTimedEvents  context.Context
+	stopTimedEvents context.CancelFunc
 }
 
 // NewMachine returns a zero-valued instance of machine, which implements
 // Machine.
 func NewMachine() Machine {
+	ctxTimedEvents, stopTimedEvents := context.WithCancel(context.Background())
 	return &machineImpl{
-		def:         NewMachineDef(),
 		submachines: map[string]*machineImpl{},
+		def:             NewMachineDef(),
+		ctxTimedEvents:  ctxTimedEvents,
+		stopTimedEvents: stopTimedEvents,
 	}
 }
 
@@ -55,6 +63,27 @@ func (m *machineImpl) SetMachineDef(def *MachineDef) {
 
 	m.def = def
 	m.setCurrentState(m.def.InitialState)
+	m.restartTimedEventsLoops()
+}
+
+func (m *machineImpl) restartTimedEventsLoops() {
+	for event, eventDef := range m.def.Events {
+		if eventDef.TimedEvery > 0 {
+			go func(event string, timedEvery time.Duration) {
+				// fmt.Printf("event=%s timed_every=%d\n", event, timedEvery)
+				for {
+					select {
+					case <-time.After(timedEvery):
+						// fmt.Printf("firing timed event '%s'\n", event)
+						_ = m.Fire(event)
+					case <-m.ctxTimedEvents.Done():
+						// fmt.Printf("stopping timed event '%s'\n", event)
+						return
+					}
+				}
+			}(event, eventDef.TimedEvery)
+		}
+	}
 }
 
 // GetState implements Machine.
@@ -95,6 +124,8 @@ func (m *machineImpl) Fire(event string) (err error) {
 
 		m.mutex.Unlock()
 		if m.hasExited {
+			// TODO: should we wait for `<-m.stoppedTimedEvents`?
+			m.stopTimedEvents()
 			*m = machineImpl{}
 		}
 	}()
@@ -106,8 +137,6 @@ func (m *machineImpl) Fire(event string) (err error) {
 
 	// fmt.Printf("\n---\n🔁 %s\n", event)
 	// defer func() { fmt.Printf("=> %s\n---\n", m.GetState()) }()
-
-	// if transitionDef, ok := m.def.match(); ok {}
 
 	fromState := m.GetState()
 

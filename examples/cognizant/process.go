@@ -59,6 +59,8 @@ func NewProcess() *Process {
 
 			e.Transition().From("stopped").To("running").If(&process.IsProcessRunning)
 			e.Transition().From("stopped").To("starting").If(&process.IsAutoStartOn).AndUnless(&process.IsProcessRunning)
+			e.Timed().Every(1 * time.Second)
+
 
 			e.Transition().From("restarting").To("running").If(&process.IsProcessRunning)
 			e.Transition().From("restarting").To("stopped").Unless(&process.IsProcessRunning)
@@ -194,12 +196,12 @@ func (process *Process) SubLogFailure(event statemachine.Event, err error) {
 func main() {
 	process := NewProcess()
 
-	go func() {
-		for {
-			process.Fire("tick")
-			time.Sleep(1 * time.Second)
-		}
-	}()
+	// go func() {
+	// 	for {
+	// 		_ = process.Fire("tick")
+	// 		time.Sleep(1 * time.Second)
+	// 	}
+	// }()
 
 	process.Fire("monitor")
 

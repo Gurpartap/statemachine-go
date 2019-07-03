@@ -11,6 +11,8 @@ type EventBuildable interface {
 // transitions and their guards. EventBuilder is oblivious to Event or it's
 // implementation.
 type EventBuilder interface {
+	Timed() TimedEventBuilder
+
 	// Transition begins the transition builder, accepting states and guards.
 	Transition() TransitionBuilder
 
@@ -36,6 +38,10 @@ type eventBuilder struct {
 }
 
 var _ EventBuilder = (*eventBuilder)(nil)
+
+func (e *eventBuilder) Timed() TimedEventBuilder {
+	return NewTimedEventBuilder(e.def)
+}
 
 func (e *eventBuilder) Transition() TransitionBuilder {
 	transitionDef := &TransitionDef{}
