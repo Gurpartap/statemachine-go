@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/signal"
@@ -126,6 +127,7 @@ func (process *Process) SubLogFailure(event statemachine.Event, err error) {
 
 func main() {
 	process := NewProcess()
+	process.SetAutoStartOn()
 	// process.SkipTicks = true
 
 	// go func() {
@@ -139,6 +141,9 @@ func main() {
 
 	time.AfterFunc(2*time.Second, func() {
 		_ = process.Fire("start")
+	// _ = process.Send(statemachine.TriggerEvent{
+	// 	Event: "monitor",
+	// })
 
 		time.AfterFunc(2*time.Second, func() {
 			process.Stop()

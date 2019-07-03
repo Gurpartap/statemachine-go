@@ -104,6 +104,17 @@ func (m *machineImpl) IsState(state string) bool {
 	return m.GetState() == state
 }
 
+// Send implements Machine.
+func (m *machineImpl) Send(signal Message) error {
+	switch signal.(type) {
+	case TriggerEvent:
+		return m.Fire(signal.(TriggerEvent).Event)
+	case OverrideState:
+		return m.SetCurrentState(signal.(OverrideState).State)
+	}
+	return errors.New("no such signal")
+}
+
 // Fire implements Machine.
 func (m *machineImpl) Fire(event string) (err error) {
 	m.mutex.Lock()
