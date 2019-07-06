@@ -15,8 +15,6 @@ StateMachine supports creating productive State Machines In Go
     - [Events](#events)
     - [Transitions](#transitions)
     - [Transition Guards (Conditions)](#transition-guards-conditions)
-    - [State Callbacks](#state-callbacks)
-        - [Before State](#before-state)
     - [Transition Callbacks](#transition-callbacks)
         - [Before Transition](#before-transition)
         - [Around Transition](#around-transition)
