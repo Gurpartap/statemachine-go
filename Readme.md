@@ -24,6 +24,7 @@ StateMachine supports creating productive State Machines In Go
     - [Matchers](#matchers)
         - [Event Transition Matchers](#event-transition-matchers)
         - [Transition Callback Matchers](#transition-callback-matchers)
+        - [Event Callback Matchers](#event-callback-matchers)
         - [Callback Functions](#callback-functions)
 - [About](#about)
 
