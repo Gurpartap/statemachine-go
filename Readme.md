@@ -19,6 +19,7 @@ StateMachine supports creating productive State Machines In Go
         - [Before Transition](#before-transition)
         - [Around Transition](#around-transition)
         - [After Transition](#after-transition)
+	- [Event Callbacks](#event-callbacks)
         - [After Failure](#after-failure)
     - [Matchers](#matchers)
         - [Event Transition Matchers](#event-transition-matchers)
