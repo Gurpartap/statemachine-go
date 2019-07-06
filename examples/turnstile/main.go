@@ -36,12 +36,8 @@ func main() {
 		m.InitialState("locked")
 
 		// Events and their transition(s).
-		m.Event("insertCoin", func(e statemachine.EventBuilder) {
-			e.Transition().From("locked").To("unlocked")
-		})
-		m.Event("push", func(e statemachine.EventBuilder) {
-			e.Transition().From("unlocked").To("locked")
-		})
+		m.Event("coin").Transition().FromAny().To("unlocked")
+		m.Event("push").Transition().FromAny().To("locked")
 
 		// Transition callbacks.
 		m.AfterTransition().From("locked").To("unlocked").Do(func() {
@@ -58,6 +54,6 @@ func main() {
 
 	// Now that our turnstile is ready, let's take it for a spin:
 
-	_ = turnstile.Fire("insertCoin") // => unlocked, Go
-	_ = turnstile.Fire("push")       // => locked, Pay
+	_ = turnstile.Fire("coin") // => unlocked, Go
+	_ = turnstile.Fire("push") // => locked, Pay
 }

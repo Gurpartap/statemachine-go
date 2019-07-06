@@ -14,7 +14,7 @@ import (
 type Process struct {
 	statemachine.Machine
 
-	IsAutoStartOn    bool
+	ShouldAutoStart  bool
 	IsProcessRunning bool
 	SkipTicks        bool
 }
@@ -26,14 +26,14 @@ func NewProcess() *Process {
 		m.States("unmonitored", "stopped", "starting", "running", "stopping", "restarting")
 		m.InitialState("unmonitored")
 
-		m.BeforeTransition().To("starting").Do(process.SetAutoStartOn)
-		m.BeforeTransition().To("stopping").Do(process.SetAutoStartOff)
-		m.BeforeTransition().To("restarting").Do(process.SetAutoStartOn)
-		m.BeforeTransition().To("unmonitored").Do(process.SetAutoStartOff)
+		m.BeforeTransition().To("starting").Do(process.SetAutoStartOn).Label("setAutoStartOn()")
+		m.BeforeTransition().To("stopping").Do(process.SetAutoStartOff).Label("setAutoStartOff()")
+		m.BeforeTransition().To("restarting").Do(process.SetAutoStartOn).Label("setAutoStartOn()")
+		m.BeforeTransition().To("unmonitored").Do(process.SetAutoStartOff).Label("setAutoStartOff()")
 
-		m.AfterTransition().To("starting").Do(process.Start)
-		m.AfterTransition().To("stopping").Do(process.Stop)
-		m.AfterTransition().To("restarting").Do(process.Restart)
+		m.AfterTransition().To("starting").Do(process.Start).Label("start()")
+		m.AfterTransition().To("stopping").Do(process.Stop).Label("stop()")
+		m.AfterTransition().To("restarting").Do(process.Restart).Label("restart()")
 
 		m.BeforeTransition().ToAny().Do(process.NotifyTriggers)
 		m.AroundTransition().ToAny().Do(process.RecordTransition)
@@ -48,22 +48,21 @@ func NewProcess() *Process {
 		m.Event("tick").
 			TimedEvery(1 * time.Second).
 			// SkipUntil(process.SkipTick).
-			Choice(&process.IsProcessRunning).
+			Choice(&process.IsProcessRunning).Label("isRunning").
 			Unless(process.SkipTick).
 			OnTrue(func(e statemachine.EventBuilder) {
 				e.Transition().From("starting").To("running")
+				e.Transition().From("restarting").To("running")
 				e.Transition().From("stopping").To("running")
 				e.Transition().From("stopped").To("running")
-				e.Transition().From("restarting").To("running")
 			}).
 			OnFalse(func(e statemachine.EventBuilder) {
 				e.Transition().From("starting").To("stopped")
-				// The process failed to die after entering the stopping state.
-				// Change the state to reflect reality.
+				e.Transition().From("restarting").To("stopped")
 				e.Transition().From("running").To("stopped")
 				e.Transition().From("stopping").To("stopped")
-				e.Transition().From("stopped").To("starting").If(&process.IsAutoStartOn)
-				e.Transition().From("restarting").To("stopped")
+				e.Transition().From("stopped").To("starting").
+					If(&process.ShouldAutoStart).Label("shouldAutoStart")
 			})
 	})
 
@@ -71,15 +70,15 @@ func NewProcess() *Process {
 }
 
 func (process *Process) GetIsAutoStartOn() bool {
-	return process.IsAutoStartOn
+	return process.ShouldAutoStart
 }
 
 func (process *Process) SetAutoStartOn() {
-	process.IsAutoStartOn = true
+	process.ShouldAutoStart = true
 }
 
 func (process *Process) SetAutoStartOff() {
-	process.IsAutoStartOn = false
+	process.ShouldAutoStart = false
 }
 
 func (process *Process) SkipTick() bool {

@@ -43,6 +43,7 @@ type TransitionToBuilder interface {
 // TransitionAndGuardBuilder inherits from TransitionToBuilder and provides
 // the ability to define additional guard condition funcs for the transition.
 type TransitionAndGuardBuilder interface {
+	Label(label string) TransitionAndGuardBuilder
 	AndIf(guards ...TransitionGuard) TransitionAndGuardBuilder
 	AndUnless(guards ...TransitionGuard) TransitionAndGuardBuilder
 }
@@ -139,35 +140,48 @@ var _ TransitionToBuilder = (*transitionToBuilder)(nil)
 
 func (builder *transitionToBuilder) If(guard ...TransitionGuard) TransitionAndGuardBuilder {
 	builder.transitionDef.AddIfGuard(guard...)
-	return newTransitionAndGuardBuilder(builder.transitionDef)
+	return newTransitionAndGuardBuilder(builder.transitionDef, "if")
 }
 
 func (builder *transitionToBuilder) Unless(guard ...TransitionGuard) TransitionAndGuardBuilder {
 	builder.transitionDef.AddUnlessGuard(guard...)
-	return newTransitionAndGuardBuilder(builder.transitionDef)
+	return newTransitionAndGuardBuilder(builder.transitionDef, "unless")
 }
 
 // newTransitionAndGuardBuilder returns a zero-valued instance of
 // TransitionAndGuardBuilder, which implements TransitionAndGuardBuilder.
-func newTransitionAndGuardBuilder(transitionDef *TransitionDef) TransitionAndGuardBuilder {
+func newTransitionAndGuardBuilder(transitionDef *TransitionDef, lastGuardType string) TransitionAndGuardBuilder {
 	return &transitionAndGuardBuilder{
 		transitionDef: transitionDef,
+		lastGuardType: lastGuardType,
 	}
 }
 
 // transitionAndGuardBuilder implements TransitionAndGuardBuilder
 type transitionAndGuardBuilder struct {
 	transitionDef *TransitionDef
+	lastGuardType string
 }
 
 var _ TransitionAndGuardBuilder = (*transitionAndGuardBuilder)(nil)
 
+func (builder *transitionAndGuardBuilder) Label(label string) TransitionAndGuardBuilder {
+	if builder.lastGuardType == "if" {
+		builder.transitionDef.IfGuards[len(builder.transitionDef.IfGuards)-1].Label = label
+	} else {
+		builder.transitionDef.UnlessGuards[len(builder.transitionDef.UnlessGuards)-1].Label = label
+	}
+	return builder
+}
+
 func (builder *transitionAndGuardBuilder) AndIf(guard ...TransitionGuard) TransitionAndGuardBuilder {
 	builder.transitionDef.AddIfGuard(guard...)
+	builder.lastGuardType = "if"
 	return builder
 }
 
 func (builder *transitionAndGuardBuilder) AndUnless(guard ...TransitionGuard) TransitionAndGuardBuilder {
 	builder.transitionDef.AddUnlessGuard(guard...)
+	builder.lastGuardType = "unless"
 	return builder
 }

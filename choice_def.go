@@ -12,10 +12,15 @@ type ChoiceConditionDef struct {
 }
 
 type ChoiceDef struct {
+	Label       string              `json:",omitempty" hcl:"label" hcle:"omitempty"`
 	Condition   *ChoiceConditionDef `json:",omitempty" hcl:"condition" hcle:"omitempty"`
 	UnlessGuard *TransitionGuardDef `json:",omitempty" hcl:"unless_condition" hcle:"omitempty"`
 	OnTrue      *EventDef           `json:",omitempty" hcl:"on_true" hcle:"omitempty"`
 	OnFalse     *EventDef           `json:",omitempty" hcl:"on_false" hcle:"omitempty"`
+}
+
+func (def *ChoiceDef) SetLabel(label string) {
+	def.Label = label
 }
 
 func (def *ChoiceDef) SetCondition(condition ChoiceCondition) {

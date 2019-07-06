@@ -7,6 +7,7 @@ import (
 )
 
 type TransitionGuardDef struct {
+	Label          string          `json:",omitempty" hcl:"label" hcle:"omitempty"`
 	RegisteredFunc string          `json:",omitempty" hcl:"registered_func" hcle:"omitempty"`
 	Guard          TransitionGuard `json:"-" hcle:"omit"`
 }

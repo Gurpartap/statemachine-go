@@ -13,6 +13,7 @@ type ChoiceCondition interface{}
 // ChoiceBuilder provides the ability to define the conditions and result
 // handling of the choice definition.
 type ChoiceBuilder interface {
+	Label(label string) ChoiceBuilder
 	Unless(guard TransitionGuard) ChoiceBuilder
 	OnTrue(eventBuilderFn func(eventBuilder EventBuilder)) ChoiceTrueBuilder
 	OnFalse(eventBuilderFn func(eventBuilder EventBuilder)) ChoiceFalseBuilder
@@ -39,6 +40,11 @@ func newChoiceBuilder(choiceDef *ChoiceDef) ChoiceBuilder {
 // chosenBuilder implements ChoiceBuilder
 type chosenBuilder struct {
 	choiceDef *ChoiceDef
+}
+
+func (builder *chosenBuilder) Label(label string) ChoiceBuilder {
+	builder.choiceDef.SetLabel(label)
+	return builder
 }
 
 var _ ChoiceBuilder = (*chosenBuilder)(nil)

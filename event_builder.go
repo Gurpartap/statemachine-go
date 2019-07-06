@@ -17,6 +17,7 @@ type EventBuildable interface {
 type EventBuilder interface {
 	TimedEvery(duration time.Duration) EventBuilder
 
+	// TODO: Assert that Choice(...) and Transition() are not used together.
 	Choice(condition ChoiceCondition) ChoiceBuilder
 
 	// Transition begins the transition builder, accepting states and guards.
