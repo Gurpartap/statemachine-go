@@ -155,6 +155,9 @@ The subsequent examples are a close port of
 with using the [state_machines](https://github.com/state-machines/state_machines)
 Ruby gem. StateMachine Go package's DSL is highly inspired from this Ruby gem.
 
+A full StateMachine implementation example is available in
+[`examples/cognizant/process.go`](https://github.com/Gurpartap/statemachine-go/blob/master/examples/cognizant/process.go).
+
 ### States and Initial State
 
 Possible states in the state machine may be manually defined, along with the
