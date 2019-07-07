@@ -13,6 +13,8 @@ StateMachine supports creating productive State Machines In Go
     - [Project Goals](#project-goals)
     - [States and Initial State](#states-and-initial-state)
     - [Events](#events)
+	- [Timed Events](#timed-events)
+	- [Choice](#choice)
     - [Transitions](#transitions)
     - [Transition Guards (Conditions)](#transition-guards-conditions)
     - [Transition Callbacks](#transition-callbacks)
@@ -108,7 +110,7 @@ Moreover, the state _machinery_ is not dependent on these DSL builders. State
 machines may also be initialized from directly allocating definition structs,
 or even parsing them from JSON, along with pre-registered callback references.
 
-A state machine definition comprises of the following components:
+StateMachine definitions comprise of the following basic components:
 
 - [States and Initial State](#states-and-initial-state)
 - [Events](#events)
@@ -116,8 +118,8 @@ A state machine definition comprises of the following components:
 - [Transition Guards](#transition-guards-conditions)
 - [Transition Callbacks](#transition-callbacks)
 
-Each of these components are covered below, along with their example usage
-code.
+These, and some additional components are covered below, along with their
+example usage code.
 
 Adding a state machine is as simple as embedding statemachine.Machine in
 your struct, defining states and events, along with their transitions.
@@ -163,6 +165,12 @@ Ruby gem, from which StateMachine Go package's DSL is highly inspired.
 
 The example represented in the diagram above is implemented in [`examples/cognizant/process.go`](https://github.com/Gurpartap/statemachine-go/blob/master/examples/cognizant/process.go).
 
+If, instead of the builders DSL, you would rather want to specify the
+StateMachine directly using definition structs, take a look at the
+[ExampleMachineDef](https://github.com/Gurpartap/statemachine-go/blob/master/machine_builder_test.go#L51-L91)
+test function. The same may also be imported from JSON or
+[HCL](https://github.com/Gurpartap/statemachine-go/tree/master/examples/hcl).
+
 ### States and Initial State
 
 Possible states in the state machine may be manually defined, along with the
@@ -200,6 +208,82 @@ process.Machine.Build(func(m statemachine.MachineBuilder) {
 
     m.Event("tick", ... )
 })
+```
+
+### Timed Events
+
+Currently there one one timed event available:
+
+#### `TimedEvery(duration time.Duration)`
+
+Makes the event fire automatically at every specified duration.
+
+```go
+process.Machine.Build(func(m statemachine.MachineBuilder) {
+	m.Event("tick", func(e statemachine.EventBuilder) {
+		e.TimedEvery(1 * time.Second)
+		// e.Transition().From(...).To(...)
+	}
+
+	// or
+
+	m.Event("tick").
+		TimedEvery(1 * time.Second).
+		// e.Transition().From(...).To(...)
+}
+```
+
+### Choice
+
+Choice assists in choosing event transition(s) based on a boolean condition.
+
+Note that Choice is not executed if the event also specifies transitions of its
+own.
+
+The example below runs the `tick` event every second, and decides the state to
+transition to based on based on whether the process is currently running on the
+system or not, as long as we're also not set to `SkipTicks` (for
+start, stop, and restart grace times).
+
+```go
+process.Machine.Build(func(m statemachine.MachineBuilder) {
+	// the nested way:
+
+	m.Event("tick", func(e statemachine.EventBuilder) {
+		e.Choice(&process.IsProcessRunning, func(c statemachine.ChoiceBuilder) {
+			c.Unless(process.SkipTick)
+
+			c.OnTrue(func(e statemachine.EventBuilder) {
+				// e.Transition().From(...).To(...)
+			})
+
+			c.OnFalse(func(e statemachine.EventBuilder) {
+				// e.Transition().From(...).To(...)
+			})
+		})
+	})
+
+	// preferred alternative syntax:
+
+	m.Event("tick").
+		TimedEvery(1 * time.Second).
+		Choice(&process.IsProcessRunning).Label("isRunning"). // Label helps with diagrams and debugging
+		Unless(process.SkipTick). // TODO: move this to SkipUntil
+		OnTrue(func(e statemachine.EventBuilder) {
+			e.Transition().From("starting").To("running")
+			e.Transition().From("restarting").To("running")
+			e.Transition().From("stopping").To("running")
+			e.Transition().From("stopped").To("running")
+		}).
+		OnFalse(func(e statemachine.EventBuilder) {
+			e.Transition().From("starting").To("stopped")
+			e.Transition().From("restarting").To("stopped")
+			e.Transition().From("running").To("stopped")
+			e.Transition().From("stopping").To("stopped")
+			e.Transition().From("stopped").To("starting").
+				If(&process.ShouldAutoStart).Label("shouldAutoStart")
+			})
+}
 ```
 
 ### Transitions
