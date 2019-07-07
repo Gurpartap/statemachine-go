@@ -32,9 +32,9 @@ StateMachine supports creating productive State Machines In Go
 
 ## Introduction
 
-<img src="https://github.com/Gurpartap/statemachine-go/blob/master/examples/cognizant/diagram.svg?sanitize=true" alt="Turnstile Example Diagram" />
-
 [`TLDR Turnstile Example`](https://github.com/Gurpartap/statemachine-go/blob/master/examples/turnstile/main.go)
+
+<a href="https://raw.githubusercontent.com/Gurpartap/statemachine-go/master/examples/turnstile/diagram.svg?sanitize=true"><img src="https://raw.githubusercontent.com/Gurpartap/statemachine-go/master/examples/turnstile/diagram.svg?sanitize=true" alt="Turnstile StateMachine Example Diagram" /></a>
 
 State machines provide an alternative way of thinking about how we code any
 job/process/workflow.
@@ -159,7 +159,7 @@ The subsequent examples are a close port of
 with using the [state_machines](https://github.com/state-machines/state_machines)
 Ruby gem, from which StateMachine Go package's DSL is highly inspired.
 
-<img src="https://github.com/Gurpartap/statemachine-go/blob/master/examples/cognizant/diagram.svg?sanitize=true" alt="System Process Example Diagram" />
+<a href="https://raw.githubusercontent.com/Gurpartap/statemachine-go/master/examples/cognizant/diagram.svg?sanitize=true"><img src="https://raw.githubusercontent.com/Gurpartap/statemachine-go/master/examples/cognizant/diagram.svg?sanitize=true" alt="System Process StateMachine Example Diagram" /></a>
 
 The example represented in the diagram above is implemented in [`examples/cognizant/process.go`](https://github.com/Gurpartap/statemachine-go/blob/master/examples/cognizant/process.go).
 
