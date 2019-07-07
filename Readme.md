@@ -32,6 +32,10 @@ StateMachine supports creating productive State Machines In Go
 
 ## Introduction
 
+<img src="https://github.com/Gurpartap/statemachine-go/blob/master/examples/cognizant/diagram.svg?sanitize=true" alt="Turnstile Example Diagram" />
+
+[`TLDR Turnstile Example`](https://github.com/Gurpartap/statemachine-go/blob/master/examples/turnstile/main.go)
+
 State machines provide an alternative way of thinking about how we code any
 job/process/workflow.
 
@@ -153,12 +157,11 @@ for writing the specification of how the state machine functions.
 The subsequent examples are a close port of
 [my experience](https://github.com/Gurpartap/cognizant/blob/master/lib/cognizant/process.rb#L28-L87)
 with using the [state_machines](https://github.com/state-machines/state_machines)
-Ruby gem. StateMachine Go package's DSL is highly inspired from this Ruby gem.
+Ruby gem, from which StateMachine Go package's DSL is highly inspired.
 
-A full StateMachine implementation example is available in
-[`examples/cognizant/process.go`](https://github.com/Gurpartap/statemachine-go/blob/master/examples/cognizant/process.go).
+<img src="https://github.com/Gurpartap/statemachine-go/blob/master/examples/cognizant/diagram.svg?sanitize=true" alt="System Process Example Diagram" />
 
-<img src="https://github.com/Gurpartap/statemachine-go/blob/master/examples/cognizant/diagram.svg?sanitize=true" alt="StateMachine example diagram" />
+The example represented in the diagram above is implemented in [`examples/cognizant/process.go`](https://github.com/Gurpartap/statemachine-go/blob/master/examples/cognizant/process.go).
 
 ### States and Initial State
 
