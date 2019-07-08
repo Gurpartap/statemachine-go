@@ -6,6 +6,7 @@ import (
 )
 
 type TransitionCallbackFuncDef struct {
+	Label          string                 `json:",omitempty" hcl:"label" hcle:"omitempty"`
 	RegisteredFunc string                 `json:",omitempty" hcl:"registered_func" hcle:"omitempty"`
 	Func           TransitionCallbackFunc `json:"-" hcle:"omit"`
 }

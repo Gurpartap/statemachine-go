@@ -38,8 +38,8 @@ type TransitionCallbackBuilder interface {
 	FromAny() TransitionCallbackFromBuilder
 	FromAnyExcept(states ...string) TransitionCallbackFromBuilder
 	To(states ...string) TransitionCallbackToBuilder
-	ToAny() TransitionCallbackToBuilder
 	ToAnyExcept(states ...string) TransitionCallbackToBuilder
+	Any() TransitionCallbackToBuilder
 }
 
 // TransitionCallbackFromBuilder inherits `from` states from
@@ -70,7 +70,11 @@ type TransitionCallbackExceptFromBuilder interface {
 // the transition callback func.
 type TransitionCallbackToBuilder interface {
 	ExitToState(supermachineState string)
-	Do(callbackFuncs ...TransitionCallbackFunc)
+	Do(callbackFuncs ...TransitionCallbackFunc) TransitionCallbackDoBuilder
+}
+
+type TransitionCallbackDoBuilder interface {
+	Label(label string) TransitionCallbackToBuilder
 }
 
 // newTransitionCallbackBuilder returns a zero-valued instance of
@@ -110,15 +114,15 @@ func (builder *transitionCallbackBuilder) To(states ...string) TransitionCallbac
 	return newTransitionCallbackToBuilder(builder.transitionCallbackDef)
 }
 
-func (builder *transitionCallbackBuilder) ToAny() TransitionCallbackToBuilder {
-	builder.transitionCallbackDef.SetFromAnyExcept()
-	builder.transitionCallbackDef.SetToAnyExcept()
-	return newTransitionCallbackToBuilder(builder.transitionCallbackDef)
-}
-
 func (builder *transitionCallbackBuilder) ToAnyExcept(states ...string) TransitionCallbackToBuilder {
 	builder.transitionCallbackDef.SetFromAnyExcept()
 	builder.transitionCallbackDef.SetToAnyExcept(states...)
+	return newTransitionCallbackToBuilder(builder.transitionCallbackDef)
+}
+
+func (builder *transitionCallbackBuilder) Any() TransitionCallbackToBuilder {
+	builder.transitionCallbackDef.SetFromAnyExcept()
+	builder.transitionCallbackDef.SetToAnyExcept()
 	return newTransitionCallbackToBuilder(builder.transitionCallbackDef)
 }
 
@@ -230,6 +234,28 @@ func (builder *transitionCallbackToBuilder) ExitToState(supermachineState string
 	builder.transitionCallbackDef.SetExitToState(supermachineState)
 }
 
-func (builder *transitionCallbackToBuilder) Do(callbackFuncs ...TransitionCallbackFunc) {
+func (builder *transitionCallbackToBuilder) Do(callbackFuncs ...TransitionCallbackFunc) TransitionCallbackDoBuilder {
 	builder.transitionCallbackDef.AddCallbackFunc(callbackFuncs...)
+	return newTransitionCallbackDoBuilder(builder.transitionCallbackDef)
+}
+
+// newTransitionCallbackDoBuilder returns a zero-valued instance of
+// transitionCallbackToBuilder, which implements
+// TransitionCallbackDoBuilder.
+func newTransitionCallbackDoBuilder(transitionCallbackDef *TransitionCallbackDef) TransitionCallbackDoBuilder {
+	return &transitionCallbackDoBuilder{
+		transitionCallbackDef: transitionCallbackDef,
+	}
+}
+
+// transitionCallbackDoBuilder implements TransitionCallbackDoBuilder
+type transitionCallbackDoBuilder struct {
+	transitionCallbackDef *TransitionCallbackDef
+}
+
+var _ TransitionCallbackDoBuilder = (*transitionCallbackDoBuilder)(nil)
+
+func (builder *transitionCallbackDoBuilder) Label(label string) TransitionCallbackToBuilder {
+	builder.transitionCallbackDef.Do[len(builder.transitionCallbackDef.Do)-1].Label = label
+	return newTransitionCallbackToBuilder(builder.transitionCallbackDef)
 }

@@ -35,8 +35,8 @@ func NewProcess() *Process {
 		m.AfterTransition().To("stopping").Do(process.Stop).Label("stop()")
 		m.AfterTransition().To("restarting").Do(process.Restart).Label("restart()")
 
-		m.BeforeTransition().ToAny().Do(process.NotifyTriggers)
-		m.AroundTransition().ToAny().Do(process.RecordTransition)
+		m.BeforeTransition().Any().Do(process.NotifyTriggers)
+		m.AroundTransition().Any().Do(process.RecordTransition)
 		m.AfterFailure().OnAnyEvent().Do(process.LogFailure)
 
 		m.Event("monitor").Transition().From("unmonitored").To("stopped")

@@ -7,12 +7,12 @@ import (
 )
 
 type ChoiceConditionDef struct {
+	Label          string          `json:",omitempty" hcl:"label" hcle:"omitempty"`
 	RegisteredFunc string          `json:",omitempty" hcl:"registered_func" hcle:"omitempty"`
 	Condition      ChoiceCondition `json:"-" hcle:"omit"`
 }
 
 type ChoiceDef struct {
-	Label       string              `json:",omitempty" hcl:"label" hcle:"omitempty"`
 	Condition   *ChoiceConditionDef `json:",omitempty" hcl:"condition" hcle:"omitempty"`
 	UnlessGuard *TransitionGuardDef `json:",omitempty" hcl:"unless_condition" hcle:"omitempty"`
 	OnTrue      *EventDef           `json:",omitempty" hcl:"on_true" hcle:"omitempty"`
@@ -20,7 +20,7 @@ type ChoiceDef struct {
 }
 
 func (def *ChoiceDef) SetLabel(label string) {
-	def.Label = label
+	def.Condition.Label = label
 }
 
 func (def *ChoiceDef) SetCondition(condition ChoiceCondition) {

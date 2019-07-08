@@ -204,8 +204,8 @@ func ExampleMachineBuilder_BeforeTransition() {
 
 		m.BeforeTransition().To("unmonitored").Do(func() { p.IsAutoStartOn = false })
 
-		m.BeforeTransition().ToAny().Do(p.NotifyTriggers)
-		m.AfterTransition().ToAny().Do(p.RecordTransition)
+		m.BeforeTransition().Any().Do(p.NotifyTriggers)
+		m.AfterTransition().Any().Do(p.RecordTransition)
 		m.AfterFailure().OnAnyEvent().Do(p.LogFailure)
 	})
 

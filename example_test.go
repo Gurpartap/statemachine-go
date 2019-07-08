@@ -95,8 +95,8 @@ func Example_systemProcess() {
 
 		machineBuilder.BeforeTransition().To("unmonitored").Do(func() { process.IsAutoStartOn = false })
 
-		machineBuilder.BeforeTransition().ToAny().Do(process.NotifyTriggers)
-		machineBuilder.AfterTransition().ToAny().Do(process.RecordTransition)
+		machineBuilder.BeforeTransition().Any().Do(process.NotifyTriggers)
+		machineBuilder.AfterTransition().Any().Do(process.RecordTransition)
 
 		machineBuilder.AfterFailure().OnAnyEvent().Do(process.LogFailure)
 	})
