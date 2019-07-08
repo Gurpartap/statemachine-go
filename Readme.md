@@ -92,9 +92,15 @@ import "github.com/Gurpartap/statemachine-go"
 >
 > – [John Gall (1975)](https://en.wikipedia.org/wiki/John_Gall_(author)#Gall.27s_law)
 
-Performance is a fairly significant factor when considering the use of
-a third party package. However, an API that I can actually code and design in
-my mind, ahead of using it, is just as important to me.
+StateMachine is simple in its specification, DSL, and internal implementation.
+And it works. There are no plans to introduce advanced FSM features such as
+regions, submachines, history based transitions, join, fork, etc., unless
+there's a simple way to do so without affecting the rest of the implementation.
+Well, submachines have already been implemented (partially and is in flux).
+
+Performance is generally a significant factor when considering the use of a
+third party package. However, an API that I can actually code and design in my
+mind, ahead of using it, is just as important to me.
 
 StateMachine's API design and developer productivity take precedence over
 its benchmark numbers (especially when compared to a bare metal switch
@@ -463,7 +469,7 @@ process.Machine.Build(func(m statemachine.MachineBuilder) {
     // log all transitions
     m.
         AfterTransition().
-        ToAny().
+        Any().
         Do(func(t statemachine.Transition) {
             log.Printf("State changed from '%s' to '%s'.\n", t.From(), t.To())
         })
@@ -582,7 +588,7 @@ m.BeforeTransition().From("idle").ToAny().Do(someFunc)
 
 m.AroundTransition().From("state_x").ToAnyExcept("state_y").Do(someFunc)
 
-m.AfterTransition().ToAny().Do(someFunc)
+m.AfterTransition().Any().Do(someFunc)
 // ...is same as:
 m.AfterTransition().FromAny().ToAny().Do(someFunc)
 ```
