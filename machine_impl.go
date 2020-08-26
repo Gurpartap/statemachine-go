@@ -2,13 +2,13 @@ package statemachine
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"reflect"
 	"sync"
 	"time"
 
 	"github.com/Gurpartap/statemachine-go/internal/dynafunc"
+	"github.com/pkg/errors"
 )
 
 type machineImpl struct {
@@ -174,7 +174,7 @@ func (m *machineImpl) Fire(event string) (err error) {
 	var transition Transition
 	transition, err = m.findTransition(event, fromState)
 	if err != nil {
-		return
+		return errors.Wrapf(err, "no transition from state=%s for event=%s", fromState, event)
 	}
 
 	err = m.applyTransition(transition)
