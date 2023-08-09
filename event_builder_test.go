@@ -34,5 +34,5 @@ func ExampleNewEventBuilder() {
 
 	// Output: unmonitored
 	// stopped
-	// no matching transition
+	// no transition from state=stopped for event=monitor: no matching transition
 }

@@ -174,7 +174,7 @@ func (m *machineImpl) Fire(event string) (err error) {
 	var transition Transition
 	transition, err = m.findTransition(event, fromState)
 	if err != nil {
-		return
+		return fmt.Errorf("no transition from state=%s for event=%s: %w", fromState, event, err)
 	}
 
 	err = m.applyTransition(transition)
@@ -396,13 +396,13 @@ func (m *machineImpl) applyTransition(transition Transition) error {
 	return nil
 }
 
-// callback1(next: {
-//   callback2(next: {
-//     callback3(next: {
-//       applyTransition()
-//     })
-//   })
-// })
+//	callback1(next: {
+//	  callback2(next: {
+//	    callback3(next: {
+//	      applyTransition()
+//	    })
+//	  })
+//	})
 func (m *machineImpl) applyTransitionAroundCallbacks(callbacks []*TransitionCallbackFuncDef, args map[reflect.Type]interface{}, applyTransition func()) {
 	if len(callbacks) == 0 {
 		applyTransition()
